@@ -1,0 +1,44 @@
+seed: 42
+
+case:
+  name: ieee33
+  load_scale: 0.55
+
+time:
+  step_minutes: 15
+  n_steps: 96
+
+hosting_capacity:
+  scenarios: 20
+  risk_tolerance: 0.05
+  n_max: 3000
+  binary_search:
+    max_iter: 14
+    min_step: 10
+
+constraints:
+  vmin_pu: 0.95
+  vmax_pu: 1.05
+  line_loading_max_percent: 100.0
+  trafo_loading_max_percent: 100.0
+
+ev:
+  charge_power_kw: 7.2
+  sessions_per_vehicle_mean: 0.9
+  duration_minutes_mean: 120
+  duration_minutes_std: 40
+  start_time_mix:
+    - weight: 0.7
+      mean: "20:00"
+      std_minutes: 90
+    - weight: 0.3
+      mean: "12:30"
+      std_minutes: 60
+
+strategy:
+  name: uncontrolled  # uncontrolled | nearest | navigation | ordered
+  ordered:
+    window_start: "22:00"
+    window_end: "06:00"
+  navigation:
+    candidate_k: 6

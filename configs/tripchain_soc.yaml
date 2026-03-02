@@ -1,0 +1,57 @@
+seed: 42
+
+case:
+  name: ieee33
+  load_scale: 0.55
+
+time:
+  step_minutes: 15
+  n_steps: 96
+
+hosting_capacity:
+  scenarios: 20
+  risk_tolerance: 0.05
+  n_max: 3000
+  binary_search:
+    max_iter: 14
+    min_step: 10
+
+constraints:
+  vmin_pu: 0.95
+  vmax_pu: 1.05
+  line_loading_max_percent: 100.0
+  trafo_loading_max_percent: 100.0
+
+ev:
+  charge_power_kw: 7.2
+
+strategy:
+  name: uncontrolled
+
+mobility:
+  model: tripchain_soc
+  mapping:
+    policy: random_onehot
+    n_nodes: 50
+  trip_chain:
+    n_zones: 50
+    other_stops_mean: 0.8
+    first_departure_mean: "07:30"
+    first_departure_std_minutes: 35
+    work_duration_mean_minutes: 480
+    work_duration_std_minutes: 45
+    other_dwell_mean_minutes: 50
+    other_dwell_std_minutes: 25
+    travel_minutes_per_km: 2.0
+    distance_km_mean: 20.0
+    distance_km_std: 10.0
+  soc:
+    battery_capacity_kwh: 60.0
+    consumption_kwh_per_km: 0.18
+    initial_soc_mean: 0.75
+    initial_soc_std: 0.12
+    soc_min: 0.0
+    soc_max: 1.0
+    charge_efficiency: 0.92
+    charge_trigger_soc: 0.5
+    charge_purposes: ["home", "work"]
