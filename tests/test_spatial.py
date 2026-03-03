@@ -21,6 +21,24 @@ def test_ieee33_table_a1_is_loaded_when_station_nodes_exist() -> None:
     )
 
 
+def test_ieee33_table_a1_supports_pandapower_bus_ids_without_slack() -> None:
+    # Common pipeline layout: ev-load elements are created on all buses except ext_grid,
+    # which yields pandapower-style bus indices [1..32] (slack bus 0 is excluded).
+    buses = np.arange(1, 33, dtype=int)
+    model = build_spatial_distance_model(buses=buses, n_buses=buses.size)
+
+    # Station at node 1 is excluded because the slack bus is not part of `buses`.
+    assert model.candidate_bus_idx.tolist() == [4, 7, 11, 14, 18, 28]
+    assert np.allclose(
+        model.dist_m[0, model.candidate_bus_idx],
+        np.array([700, 900, 1500, 1600, 700, 1400], dtype=float),
+    )
+    assert np.allclose(
+        model.dist_m[31, model.candidate_bus_idx],
+        np.array([1700, 1000, 1200, 800, 900, 1600], dtype=float),
+    )
+
+
 def test_fallback_distance_model_is_deterministic() -> None:
     buses = np.array([10, 22, 35], dtype=int)
     model = build_spatial_distance_model(buses=buses, n_buses=buses.size)

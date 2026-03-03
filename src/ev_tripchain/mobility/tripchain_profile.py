@@ -74,8 +74,11 @@ def build_ev_profile_mw_tripchain(
     strategy_name: str = "uncontrolled",
     ordered_window: tuple[int, int] | None = None,
     navigation_candidate_k: int = 5,
+    navigation_distance_limit_m: float | None = None,
+    navigation_distance_beta: float = 1.0,
     bus_distance_m: np.ndarray | None = None,
     candidate_bus_idx: np.ndarray | None = None,
+    bus_score: np.ndarray | None = None,
     rng: np.random.Generator,
 ) -> np.ndarray:
     """
@@ -194,6 +197,9 @@ def build_ev_profile_mw_tripchain(
                     dist_m=bus_distance_m,
                     candidate_bus_idx=candidate_bus_idx,
                     navigation_candidate_k=navigation_candidate_k,
+                    navigation_distance_limit_m=navigation_distance_limit_m,
+                    navigation_distance_beta=navigation_distance_beta,
+                    candidate_bus_score=bus_score,
                     rng=rng,
                 )
 

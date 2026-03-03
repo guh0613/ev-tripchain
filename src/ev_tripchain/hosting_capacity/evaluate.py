@@ -7,8 +7,9 @@ import numpy as np
 from ev_tripchain.config import ProjectConfig
 from ev_tripchain.grid.constraints import check_violations
 from ev_tripchain.grid.powerflow import run_powerflow
-from ev_tripchain.hosting_capacity.monte_carlo import estimate_event_probability
+from ev_tripchain.hosting_capacity.monte_carlo import MonteCarloEstimate, estimate_event_probability
 from ev_tripchain.mobility.profile import build_ev_profile_mw
+from ev_tripchain.rng import make_rng_for
 
 
 def _ensure_ev_load_elements(net: Any) -> list[int]:
@@ -32,13 +33,39 @@ def _ensure_ev_load_elements(net: Any) -> list[int]:
     return ev_idx
 
 
-def estimate_violation_probability(
+def _static_voltage_margin_score(
+    net: Any,
+    *,
+    buses: np.ndarray,
+    vmin: float,
+    vmax: float,
+) -> np.ndarray:
+    """
+    Compute a static 'grid headroom' score per EV-load column based on base-case voltages.
+
+    This is a lightweight proxy for "node margin" mentioned in the opening report/literature.
+    """
+    try:
+        run_powerflow(net)
+        bus_ids = [int(b) for b in np.asarray(buses, dtype=int).reshape(-1).tolist()]
+        vm = net.res_bus.loc[bus_ids, "vm_pu"].to_numpy(dtype=float)  # type: ignore[attr-defined]
+        margin = np.minimum(vm - float(vmin), float(vmax) - vm)
+        margin = np.clip(margin, 0.0, None)
+        if not np.isfinite(margin).all():
+            raise ValueError("non-finite voltage margin")
+        return margin
+    except Exception:
+        # Fallback: neutral scores (no grid preference).
+        return np.ones(int(np.asarray(buses).size), dtype=float)
+
+
+def estimate_violation_probability_mc(
     net: Any,
     cfg: ProjectConfig,
     *,
     n: int,
     rng: np.random.Generator,
-) -> float:
+) -> MonteCarloEstimate:
     """
     Monte Carlo estimate of violation probability under EV scale N.
 
@@ -47,6 +74,15 @@ def estimate_violation_probability(
     ev_idx = _ensure_ev_load_elements(net)
     buses = net.load.loc[ev_idx, "bus"].to_numpy()
     n_buses = len(ev_idx)
+    # Ensure we're scoring a "no-EV" base operating point (net is reused across calls).
+    net.load.loc[ev_idx, "p_mw"] = 0.0
+    net.load.loc[ev_idx, "q_mvar"] = 0.0
+    bus_score = _static_voltage_margin_score(
+        net,
+        buses=buses,
+        vmin=cfg.constraints.vmin_pu,
+        vmax=cfg.constraints.vmax_pu,
+    )
 
     def simulate_event(rng_s: np.random.Generator) -> bool:
         profile = build_ev_profile_mw(
@@ -54,6 +90,7 @@ def estimate_violation_probability(
             n_vehicles=n,
             buses=buses,
             n_buses=n_buses,
+            bus_score=bus_score,
             rng=rng_s,
         )  # shape: (T, n_buses)
 
@@ -74,7 +111,24 @@ def estimate_violation_probability(
                 return True
         return False
 
-    est = estimate_event_probability(
-        simulate_event, n_scenarios=cfg.hosting_capacity.scenarios, rng=rng
+    scenario_rng = None
+    if cfg.hosting_capacity.common_random_numbers:
+        scenario_rng = lambda i: make_rng_for(int(cfg.seed), 9103, int(i))
+
+    return estimate_event_probability(
+        simulate_event,
+        n_scenarios=cfg.hosting_capacity.scenarios,
+        rng=rng,
+        scenario_rng=scenario_rng,
     )
-    return est.p_hat
+
+
+def estimate_violation_probability(
+    net: Any,
+    cfg: ProjectConfig,
+    *,
+    n: int,
+    rng: np.random.Generator,
+) -> float:
+    """Backwards-compatible wrapper that returns p_hat only."""
+    return float(estimate_violation_probability_mc(net, cfg, n=n, rng=rng).p_hat)

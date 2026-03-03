@@ -58,16 +58,38 @@ def _build_ieee33_station_distance_model(bus_ids: np.ndarray) -> SpatialDistance
     if n < len(_IEEE33_EVCS_NODE_IDS):
         return None
 
-    # Accept either 1-based bus ids (1..33) or 0-based bus ids (0..32).
-    if np.all((bus_ids >= 1) & (bus_ids <= 33)):
+    bus_ids = np.asarray(bus_ids, dtype=int).reshape(-1)
+
+    # Accept either 1-based node ids (1..33) or 0-based pandapower indices (0..32).
+    #
+    # Note: In our pipelines we often exclude the ext_grid bus (typically node 1 / index 0),
+    # which yields an ambiguous set like {1..32}. In that case we treat it as 0-based and
+    # map to node ids {2..33}.
+    if np.any(bus_ids == 0):
+        node_ids = bus_ids + 1
+    elif np.any(bus_ids == 33):
+        node_ids = bus_ids.copy()
+    elif np.all((bus_ids >= 1) & (bus_ids <= 32)):
+        # Ambiguous: could be 1-based subset or 0-based without 0.
+        if n == 32 and np.array_equal(np.sort(bus_ids), np.arange(1, 33, dtype=int)):
+            node_ids = bus_ids + 1
+        else:
+            node_ids = bus_ids.copy()
+    elif np.all((bus_ids >= 1) & (bus_ids <= 33)):
         node_ids = bus_ids.copy()
     elif np.all((bus_ids >= 0) & (bus_ids <= 32)):
         node_ids = bus_ids + 1
     else:
         return None
 
-    # Avoid false positives on non-IEEE33 cases: all 7 charging-station nodes must exist.
-    if not np.isin(_IEEE33_EVCS_NODE_IDS, node_ids).all():
+    # Avoid false positives on non-IEEE33 cases: require the core station nodes to exist.
+    required_station_nodes = np.array([6, 9, 13, 16, 20, 30], dtype=int)
+    if not np.isin(required_station_nodes, node_ids).all():
+        return None
+
+    node_set = set(node_ids.tolist())
+    present_station_nodes = [x for x in _IEEE33_EVCS_NODE_IDS.tolist() if x in node_set]
+    if len(present_station_nodes) < required_station_nodes.size:
         return None
 
     station_to_col: dict[int, int] = {}
@@ -76,7 +98,7 @@ def _build_ieee33_station_distance_model(bus_ids: np.ndarray) -> SpatialDistance
             station_to_col[node_id] = col
 
     candidate_bus_idx = np.array(
-        [station_to_col[int(node_id)] for node_id in _IEEE33_EVCS_NODE_IDS],
+        [station_to_col[int(node_id)] for node_id in present_station_nodes],
         dtype=int,
     )
 
@@ -85,7 +107,7 @@ def _build_ieee33_station_distance_model(bus_ids: np.ndarray) -> SpatialDistance
 
     row_idx = node_ids - 1
     for station_node, station_col in zip(
-        _IEEE33_EVCS_NODE_IDS.tolist(),
+        present_station_nodes,
         candidate_bus_idx.tolist(),
     ):
         station_k = int(np.where(_IEEE33_EVCS_NODE_IDS == station_node)[0][0])
@@ -128,6 +150,9 @@ def choose_spatial_target_bus(
     dist_m: np.ndarray,
     candidate_bus_idx: np.ndarray | None,
     navigation_candidate_k: int,
+    navigation_distance_limit_m: float | None = None,
+    navigation_distance_beta: float = 1.0,
+    candidate_bus_score: np.ndarray | None = None,
     rng: np.random.Generator,
 ) -> int:
     src = int(src_bus_col)
@@ -159,4 +184,35 @@ def choose_spatial_target_bus(
 
     k = max(int(navigation_candidate_k), 1)
     k = min(k, int(ranked.size))
-    return int(rng.choice(ranked[:k]))
+    ranked_k = ranked[:k]
+    d_k = dist_m[src, ranked_k].astype(float, copy=False)
+
+    dlim = navigation_distance_limit_m
+    if dlim is not None:
+        dlim = float(dlim)
+        if dlim > 0.0:
+            within = d_k <= dlim
+            if within.any():
+                ranked_k = ranked_k[within]
+                d_k = d_k[within]
+
+    beta = float(max(0.0, navigation_distance_beta))
+    if beta == 0.0:
+        w_dist = np.ones_like(d_k, dtype=float)
+    else:
+        w_dist = 1.0 / np.power(np.maximum(d_k, 1.0), beta)
+
+    if candidate_bus_score is None:
+        w_score = np.ones_like(w_dist, dtype=float)
+    else:
+        s = np.asarray(candidate_bus_score, dtype=float).reshape(-1)
+        if s.size != dist_m.shape[0]:
+            raise ValueError("candidate_bus_score size mismatch with dist_m.")
+        w_score = np.maximum(0.0, s[ranked_k])
+
+    w = (w_score + 1e-6) * w_dist
+    w_sum = float(np.sum(w))
+    if not np.isfinite(w_sum) or w_sum <= 0.0:
+        return int(rng.choice(ranked_k))
+    p = w / w_sum
+    return int(rng.choice(ranked_k, p=p))

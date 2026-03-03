@@ -63,6 +63,7 @@ def build_ev_profile_mw(
     n_vehicles: int,
     buses: np.ndarray,
     n_buses: int,
+    bus_score: np.ndarray | None = None,
     rng: np.random.Generator,
 ) -> np.ndarray:
     """
@@ -111,6 +112,9 @@ def build_ev_profile_mw(
                 dist_m=spatial_model.dist_m,
                 candidate_bus_idx=spatial_model.candidate_bus_idx,
                 navigation_candidate_k=int(cfg.strategy.navigation.candidate_k),
+                navigation_distance_limit_m=cfg.strategy.navigation.distance_limit_m,
+                navigation_distance_beta=float(cfg.strategy.navigation.distance_beta),
+                candidate_bus_score=bus_score,
                 rng=rng,
             )
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Callable, Protocol
 
 import numpy as np
 
@@ -42,6 +42,7 @@ def estimate_event_probability(
     *,
     n_scenarios: int,
     rng: np.random.Generator,
+    scenario_rng: Callable[[int], np.random.Generator] | None = None,
 ) -> MonteCarloEstimate:
     """
     Estimate P(event) via Monte Carlo over `n_scenarios`.
@@ -50,8 +51,9 @@ def estimate_event_probability(
     """
     n = int(max(n_scenarios, 0))
     n_events = 0
-    for _ in range(n):
-        n_events += int(bool(simulate_event(rng)))
+    for i in range(n):
+        r = scenario_rng(i) if scenario_rng is not None else rng
+        n_events += int(bool(simulate_event(r)))
 
     p_hat = n_events / n if n > 0 else 0.0
     ci_low, ci_high = _wilson_ci_95(n=n, n_events=n_events)

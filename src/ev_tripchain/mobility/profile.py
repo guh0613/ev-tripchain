@@ -25,6 +25,7 @@ def build_ev_profile_mw(
     n_vehicles: int,
     buses: np.ndarray,
     n_buses: int,
+    bus_score: np.ndarray | None = None,
     rng: np.random.Generator,
 ) -> np.ndarray:
     """
@@ -35,7 +36,12 @@ def build_ev_profile_mw(
     """
     if cfg.mobility.model == "synthetic_sessions":
         return build_ev_profile_mw_sessions(
-            cfg=cfg, n_vehicles=n_vehicles, buses=buses, n_buses=n_buses, rng=rng
+            cfg=cfg,
+            n_vehicles=n_vehicles,
+            buses=buses,
+            n_buses=n_buses,
+            bus_score=bus_score,
+            rng=rng,
         )
 
     # trip-chain + SOC model
@@ -108,8 +114,11 @@ def build_ev_profile_mw(
         strategy_name=cfg.strategy.name,
         ordered_window=ordered_window,
         navigation_candidate_k=int(cfg.strategy.navigation.candidate_k),
+        navigation_distance_limit_m=cfg.strategy.navigation.distance_limit_m,
+        navigation_distance_beta=float(cfg.strategy.navigation.distance_beta),
         bus_distance_m=bus_distance_m,
         candidate_bus_idx=candidate_bus_idx,
+        bus_score=bus_score,
         rng=rng,
     )
     # safety: align to expected columns

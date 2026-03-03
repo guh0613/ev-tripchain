@@ -37,11 +37,8 @@ def compare_strategies() -> list[dict]:
         label = strat["name"]
         print(f"Running strategy: {label} ...")
         result = run_hosting_capacity(cfg)
-        row = {
-            "strategy": label,
-            "n_star": result.n_star,
-            "risk_curve": result.risk_curve,
-        }
+        row = result.model_dump()
+        row["strategy"] = label
         results.append(row)
         print(f"  -> N* = {result.n_star}")
 

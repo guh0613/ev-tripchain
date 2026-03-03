@@ -11,6 +11,8 @@ time:
 hosting_capacity:
   scenarios: 20
   risk_tolerance: 0.05
+  common_random_numbers: true
+  risk_metric: p_hat
   n_max: 3000
   binary_search:
     max_iter: 14
@@ -42,3 +44,5 @@ strategy:
     window_end: "06:00"
   navigation:
     candidate_k: 6
+    distance_limit_m: 2000
+    distance_beta: 1.0

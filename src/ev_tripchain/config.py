@@ -25,6 +25,14 @@ class BinarySearchConfig(BaseModel):
 class HostingCapacityConfig(BaseModel):
     scenarios: int = 50
     risk_tolerance: float = 0.05
+    common_random_numbers: bool = Field(
+        default=True,
+        description="Use scenario-index RNGs (common random numbers) across N.",
+    )
+    risk_metric: Literal["p_hat", "ci95_high"] = Field(
+        default="p_hat",
+        description="Risk metric used for N* decision (p_hat or Wilson CI upper bound).",
+    )
     n_max: int = 2000
     binary_search: BinarySearchConfig = Field(default_factory=BinarySearchConfig)
 
@@ -57,6 +65,14 @@ class OrderedStrategyConfig(BaseModel):
 
 class NavigationStrategyConfig(BaseModel):
     candidate_k: int = 5
+    distance_limit_m: float | None = Field(
+        default=None,
+        description="Max navigation distance (meters). None disables distance filtering.",
+    )
+    distance_beta: float = Field(
+        default=1.0,
+        description="Distance penalty exponent in navigation (weight ~ 1/d^beta).",
+    )
 
 
 class StrategyConfig(BaseModel):
