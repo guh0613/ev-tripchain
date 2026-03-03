@@ -4,6 +4,7 @@ import numpy as np
 
 from ev_tripchain.config import ProjectConfig, load_config
 from ev_tripchain.grid.cases import load_case
+from ev_tripchain.grid.powerflow import run_powerflow
 from ev_tripchain.hosting_capacity.evaluate import (
     _ensure_ev_load_elements,
     estimate_violation_probability,
@@ -174,6 +175,20 @@ def test_load_case_ieee33_alias_and_scale() -> None:
     assert len(net_full.bus) == 33
     ratio = net_half.load.p_mw.sum() / net_full.load.p_mw.sum()
     assert abs(ratio - 0.5) < 0.01
+
+
+def test_ieee33_line_loading_percent_is_meaningful() -> None:
+    """
+    IEEE33 should have calibrated thermal limits so line loading is not near-zero.
+
+    This protects against silent mis-calibration where `loading_percent` becomes unusable
+    (e.g., missing/invalid `max_i_ka`).
+    """
+    net = load_case("ieee33", load_scale=1.0)
+    run_powerflow(net)
+
+    assert (net.line.max_i_ka > 0).all()
+    assert float(net.res_line.loading_percent.max()) > 1.0
 
 
 def test_synthetic_nearest_is_not_identical_to_uncontrolled(tmp_path: Path) -> None:

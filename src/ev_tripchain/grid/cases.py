@@ -1,6 +1,33 @@
 from __future__ import annotations
 
+import math
 from typing import Any
+
+
+_IEEE33_IMPROVED_LINE_CAPACITY_MW = 6.0
+
+
+def _calibrate_ieee33_thermal_limits(net: Any) -> None:
+    """
+    Calibrate IEEE33 line thermal limits so `loading_percent` is meaningful.
+
+    Aligned to the project's core reference ("improved IEEE33", appendix table A2):
+    uniform line capacity of 6 MW on a 12.66 kV system.
+    """
+    if len(getattr(net, "line", ())) == 0:
+        return
+
+    try:
+        vn_kv = float(net.bus.vn_kv.median())
+    except Exception:
+        return
+
+    if not (vn_kv > 0):
+        return
+
+    s_mva = float(_IEEE33_IMPROVED_LINE_CAPACITY_MW)
+    max_i_ka = s_mva / (math.sqrt(3.0) * vn_kv)
+    net.line["max_i_ka"] = max_i_ka
 
 
 def load_case(name: str, *, load_scale: float = 1.0) -> Any:
@@ -17,6 +44,11 @@ def load_case(name: str, *, load_scale: float = 1.0) -> Any:
     load_scale : float
         Scale factor applied to base loads (p_mw and q_mvar).
         Values < 1.0 represent moderate-load scenarios with headroom for EV hosting.
+
+    Notes
+    -----
+    For IEEE33 (pandapower `case33bw`), this function applies a lightweight thermal-limit
+    calibration so that `net.res_line.loading_percent` is not trivially near-zero.
     """
     try:
         import pandapower.networks as pn  # type: ignore
@@ -30,6 +62,7 @@ def load_case(name: str, *, load_scale: float = 1.0) -> Any:
         net = pn.create_cigre_network_mv(with_der=False)
     elif name in {"ieee33", "ieee_33", "ieee33bw", "case33bw"}:
         net = pn.case33bw()
+        _calibrate_ieee33_thermal_limits(net)
     elif name in {"simple", "4bus"}:
         net = pn.simple_four_bus_system()
     else:
