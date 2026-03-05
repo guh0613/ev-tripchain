@@ -3,7 +3,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import matplotlib
 import numpy as np
+
+matplotlib.rcParams["font.family"] = ["STHeiti", "Hiragino Sans GB", "Arial Unicode MS", "DejaVu Sans"]
+matplotlib.rcParams["axes.unicode_minus"] = False
 
 
 def _ensure_outdir() -> Path:
@@ -46,16 +50,16 @@ def plot_input_histograms(*, seed: int = 1, n_samples: int = 20000) -> Path:
 
     fig, ax = plt.subplots(1, 2, figsize=(10.5, 4.2), constrained_layout=True)
     ax[0].hist(dep_h, bins=48, density=True, color="#4C78A8", alpha=0.85)
-    ax[0].set_xlabel("Departure time (hour)")
-    ax[0].set_ylabel("Density")
-    ax[0].set_title("Departure time distribution")
+    ax[0].set_xlabel("出发时间（小时）")
+    ax[0].set_ylabel("概率密度")
+    ax[0].set_title("首次出发时间分布")
     ax[0].set_xlim(0, 24)
     ax[0].set_xticks(np.arange(0, 25, 4))
 
     ax[1].hist(daily_km, bins=50, density=True, color="#F58518", alpha=0.85)
-    ax[1].set_xlabel("Daily distance (km)")
-    ax[1].set_ylabel("Density")
-    ax[1].set_title("Daily mileage distribution")
+    ax[1].set_xlabel("日行驶里程（km）")
+    ax[1].set_ylabel("概率密度")
+    ax[1].set_title("日行驶里程分布")
 
     out = _ensure_outdir() / "01_input_histograms.png"
     fig.savefig(out, dpi=180)
@@ -108,15 +112,15 @@ def plot_single_vehicle_soc(*, seed: int = 2) -> Path:
     ax.set_xlim(0, 24)
     ax.set_ylim(0, 1.0)
     ax.set_xticks(np.arange(0, 25, 2))
-    ax.set_xlabel("Hour of day")
-    ax.set_ylabel("SOC")
-    ax.set_title("Single-vehicle SOC over 24 hours")
+    ax.set_xlabel("时刻（小时）")
+    ax.set_ylabel("荷电状态（SOC）")
+    ax.set_title("单车24小时SOC演化曲线")
 
     charging_steps = np.where(p_kw > 1e-9)[0]
     if charging_steps.size:
         t0 = charging_steps.min() * (step_minutes / 60.0)
         t1 = (charging_steps.max() + 1) * (step_minutes / 60.0)
-        ax.axvspan(t0, t1, color="#54A24B", alpha=0.10, label="Charging")
+        ax.axvspan(t0, t1, color="#54A24B", alpha=0.10, label="充电时段")
         ax.legend(loc="lower right")
 
     out = _ensure_outdir() / "02_single_vehicle_soc.png"
@@ -185,9 +189,9 @@ def plot_total_charging_load(*, seed: int = 3, n_vehicles: int = 1500) -> Path:
     ax.plot(hours, total_kw, color="#B279A2", linewidth=2.2)
     ax.set_xlim(0, 24)
     ax.set_xticks(np.arange(0, 25, 2))
-    ax.set_xlabel("Hour of day")
-    ax.set_ylabel("Total charging power (kW)")
-    ax.set_title(f"Total charging load (uncontrolled), N={int(n_vehicles)}")
+    ax.set_xlabel("时刻（小时）")
+    ax.set_ylabel("总充电功率（kW）")
+    ax.set_title(f"无序充电总负荷曲线，N={int(n_vehicles)}")
 
     out = _ensure_outdir() / "03_total_charging_load.png"
     fig.savefig(out, dpi=180)
@@ -216,9 +220,9 @@ def plot_risk_curve(*, result_path: str = "docs/results/tripchain_soc_result.jso
     ax.axhline(y=eps, color="#4C78A8", linestyle="--", linewidth=1.5, label=f"$\\varepsilon$ = {eps}")
     if n_star > 0:
         ax.axvline(x=n_star, color="#54A24B", linestyle=":", linewidth=1.5, label=f"$N^*$ = {n_star}")
-    ax.set_xlabel("Number of EVs (N)")
-    ax.set_ylabel("Violation probability $\\hat{\\pi}(N)$")
-    ax.set_title("Risk curve: EV hosting capacity")
+    ax.set_xlabel("接入电动汽车数量（N）")
+    ax.set_ylabel("违规概率 $\\hat{\\pi}(N)$")
+    ax.set_title("风险曲线：电动汽车概率承载力")
     ax.set_ylim(-0.02, 1.05)
     ax.legend(loc="upper left")
     ax.grid(True, alpha=0.3)
@@ -301,15 +305,15 @@ def plot_bus_voltage_profile(*, n_vehicles: int = 1500, seed: int = 10) -> Path:
     fig, ax = plt.subplots(figsize=(10.5, 5.0), constrained_layout=True)
 
     for b in range(all_vm.shape[1]):
-        ax.plot(hours, all_vm[:, b], linewidth=0.8, alpha=0.7, label=f"Bus {b}")
+        ax.plot(hours, all_vm[:, b], linewidth=0.8, alpha=0.7, label=f"母线 {b}")
 
-    ax.axhline(y=0.95, color="red", linestyle="--", linewidth=1.2, label="$V_{min}$ = 0.95")
-    ax.axhline(y=1.05, color="red", linestyle="--", linewidth=1.2, label="$V_{max}$ = 1.05")
+    ax.axhline(y=0.95, color="red", linestyle="--", linewidth=1.2, label="$V_{min}$ = 0.95 p.u.")
+    ax.axhline(y=1.05, color="red", linestyle="--", linewidth=1.2, label="$V_{max}$ = 1.05 p.u.")
     ax.set_xlim(0, 24)
     ax.set_xticks(np.arange(0, 25, 2))
-    ax.set_xlabel("Hour of day")
-    ax.set_ylabel("Voltage (p.u.)")
-    ax.set_title(f"Bus voltage profiles, N={n_vehicles} EVs")
+    ax.set_xlabel("时刻（小时）")
+    ax.set_ylabel("电压（p.u.）")
+    ax.set_title(f"各母线24小时电压剖面，N={n_vehicles}")
     ax.grid(True, alpha=0.3)
 
     out = _ensure_outdir() / "05_bus_voltage_profile.png"
@@ -356,13 +360,13 @@ def plot_load_model_comparison(*, seed: int = 5, n_vehicles: int = 1000) -> Path
     total_tc_kw = prof_tc.sum(axis=1) * 1000.0
 
     fig, ax = plt.subplots(figsize=(10.5, 4.8), constrained_layout=True)
-    ax.plot(hours, total_sess_kw, color="#4C78A8", linewidth=2.2, label="Session-based model")
-    ax.plot(hours, total_tc_kw, color="#E45756", linewidth=2.2, label="Trip-chain + SOC model")
+    ax.plot(hours, total_sess_kw, color="#4C78A8", linewidth=2.2, label="会话式模型")
+    ax.plot(hours, total_tc_kw, color="#E45756", linewidth=2.2, label="出行链+SOC模型")
     ax.set_xlim(0, 24)
     ax.set_xticks(np.arange(0, 25, 2))
-    ax.set_xlabel("Hour of day")
-    ax.set_ylabel("Total charging power (kW)")
-    ax.set_title(f"Load model comparison, N={n_vehicles}")
+    ax.set_xlabel("时刻（小时）")
+    ax.set_ylabel("总充电功率（kW）")
+    ax.set_title(f"两种充电负荷模型对比，N={n_vehicles}")
     ax.legend()
     ax.grid(True, alpha=0.3)
 
