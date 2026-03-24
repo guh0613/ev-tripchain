@@ -31,7 +31,7 @@ class HostingCapacityConfig(BaseModel):
     )
     risk_metric: Literal["p_hat", "ci95_high"] = Field(
         default="p_hat",
-        description="Risk metric used for N* decision (p_hat or Wilson CI upper bound).",
+        description="Risk metric used for N* decision; thesis baseline uses p_hat and reports Wilson CI separately.",
     )
     n_max: int = 2000
     binary_search: BinarySearchConfig = Field(default_factory=BinarySearchConfig)
@@ -61,6 +61,10 @@ class EVConfig(BaseModel):
 class OrderedStrategyConfig(BaseModel):
     window_start: str = "22:00"
     window_end: str = "06:00"
+    random_delay: bool = Field(
+        default=True,
+        description="Spread charging starts uniformly within window to avoid synchronous peak.",
+    )
 
 
 class NavigationStrategyConfig(BaseModel):
@@ -72,6 +76,10 @@ class NavigationStrategyConfig(BaseModel):
     distance_beta: float = Field(
         default=1.0,
         description="Distance penalty exponent in navigation (weight ~ 1/d^beta).",
+    )
+    dynamic_scoring: bool = Field(
+        default=True,
+        description="Update bus scores based on accumulated load to achieve spatial dispersion.",
     )
 
 

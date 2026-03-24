@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from pydantic import BaseModel
 
 from ev_tripchain.config import ProjectConfig
 from ev_tripchain.grid.cases import load_case
+from ev_tripchain.hosting_capacity.deterministic import run_deterministic_hc
 from ev_tripchain.hosting_capacity.evaluate import estimate_violation_probability_mc
 from ev_tripchain.hosting_capacity.monte_carlo import MonteCarloEstimate
 from ev_tripchain.hosting_capacity.search import binary_search_max_n
+from ev_tripchain.hosting_capacity.sensitivity import run_sensitivity_hc
 from ev_tripchain.rng import make_rng_for
 
 
@@ -20,6 +24,7 @@ class RiskPoint(BaseModel):
 
 class HostingCapacityResult(BaseModel):
     n_star: int
+    base_case_safe: bool
     risk_tolerance: float
     risk_metric: str
     scenarios: int
@@ -28,22 +33,65 @@ class HostingCapacityResult(BaseModel):
     risk_curve_detail: list[RiskPoint]
 
 
-def run_hosting_capacity(cfg: ProjectConfig) -> HostingCapacityResult:
+class ComparisonResult(BaseModel):
+    mc: HostingCapacityResult
+    deterministic_n_star: int
+    deterministic_weakest_bus: int
+    deterministic_weakest_voltage: float
+    sensitivity_n_star_uniform: int
+    sensitivity_n_star_weakest: int
+
+
+def run_hosting_capacity(
+    cfg: ProjectConfig,
+    *,
+    progress: Callable[[str], None] | None = None,
+    progress_label: str | None = None,
+) -> HostingCapacityResult:
     net = load_case(cfg.case.name, load_scale=cfg.case.load_scale)
 
     est_cache: dict[int, MonteCarloEstimate] = {}
+    prefix = f"[{progress_label}] " if progress_label else ""
 
     def risk_at_n(n: int) -> float:
         nn = int(n)
         if nn not in est_cache:
+            if progress is not None:
+                progress(f"{prefix}evaluating N={nn}")
             # deterministic per-N to keep binary search stable/reproducible
             rng_n = make_rng_for(int(cfg.seed), nn)
-            est_cache[nn] = estimate_violation_probability_mc(net, cfg, n=nn, rng=rng_n)
+            est_cache[nn] = estimate_violation_probability_mc(
+                net,
+                cfg,
+                n=nn,
+                rng=rng_n,
+                progress=(
+                    None
+                    if progress is None
+                    else lambda msg, nn=nn: progress(f"{prefix}N={nn}: {msg}")
+                ),
+            )
+            if progress is not None:
+                est = est_cache[nn]
+                progress(
+                    f"{prefix}N={nn} done: p_hat={est.p_hat:.4f}, "
+                    f"ci95=[{est.ci95_low:.4f}, {est.ci95_high:.4f}]"
+                )
         est = est_cache[nn]
         metric = cfg.hosting_capacity.risk_metric
         if metric == "ci95_high":
             return float(est.ci95_high)
         return float(est.p_hat)
+
+    base_case_est = est_cache.get(0)
+    if base_case_est is None:
+        risk_at_n(0)
+        base_case_est = est_cache[0]
+    base_case_safe = float(
+        base_case_est.ci95_high
+        if cfg.hosting_capacity.risk_metric == "ci95_high"
+        else base_case_est.p_hat
+    ) <= cfg.hosting_capacity.risk_tolerance
 
     n_star, curve = binary_search_max_n(
         risk_at_n,
@@ -66,10 +114,54 @@ def run_hosting_capacity(cfg: ProjectConfig) -> HostingCapacityResult:
     detail.sort(key=lambda x: x.n)
     return HostingCapacityResult(
         n_star=n_star,
+        base_case_safe=base_case_safe,
         risk_tolerance=cfg.hosting_capacity.risk_tolerance,
         risk_metric=cfg.hosting_capacity.risk_metric,
         scenarios=cfg.hosting_capacity.scenarios,
         common_random_numbers=cfg.hosting_capacity.common_random_numbers,
         risk_curve=curve,
         risk_curve_detail=detail,
+    )
+
+
+def run_method_comparison(
+    cfg: ProjectConfig,
+    *,
+    progress: Callable[[str], None] | None = None,
+) -> ComparisonResult:
+    """Run all three hosting capacity methods and return comparison."""
+    net_det = load_case(cfg.case.name, load_scale=cfg.case.load_scale)
+    net_sens = load_case(cfg.case.name, load_scale=cfg.case.load_scale)
+
+    # 1. Monte Carlo (existing)
+    if progress is not None:
+        progress("[mc] running Monte Carlo hosting capacity")
+    mc_result = run_hosting_capacity(cfg, progress=progress, progress_label="mc")
+    if progress is not None:
+        progress(f"[mc] done: N*={mc_result.n_star}")
+
+    # 2. Deterministic extreme scenario
+    if progress is not None:
+        progress("[deterministic] running")
+    det_result = run_deterministic_hc(net_det, cfg)
+    if progress is not None:
+        progress(f"[deterministic] done: N*={det_result.n_star}")
+
+    # 3. Voltage sensitivity
+    if progress is not None:
+        progress("[sensitivity] running")
+    sens_result = run_sensitivity_hc(net_sens, cfg)
+    if progress is not None:
+        progress(
+            "[sensitivity] done: "
+            f"uniform={sens_result.n_star_uniform}, weakest={sens_result.n_star_weakest}"
+        )
+
+    return ComparisonResult(
+        mc=mc_result,
+        deterministic_n_star=det_result.n_star,
+        deterministic_weakest_bus=det_result.weakest_bus_id,
+        deterministic_weakest_voltage=det_result.weakest_bus_voltage_pu,
+        sensitivity_n_star_uniform=sens_result.n_star_uniform,
+        sensitivity_n_star_weakest=sens_result.n_star_weakest,
     )

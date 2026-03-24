@@ -59,12 +59,37 @@ def _static_voltage_margin_score(
         return np.ones(int(np.asarray(buses).size), dtype=float)
 
 
+def _base_case_is_safe(
+    net: Any,
+    *,
+    ev_idx: list[int],
+    vmin: float,
+    vmax: float,
+    line_max: float,
+    trafo_max: float,
+) -> bool:
+    net.load.loc[ev_idx, "p_mw"] = 0.0
+    net.load.loc[ev_idx, "q_mvar"] = 0.0
+    try:
+        run_powerflow(net)
+    except Exception:
+        return False
+    return not check_violations(
+        net,
+        vmin=vmin,
+        vmax=vmax,
+        line_max=line_max,
+        trafo_max=trafo_max,
+    ).any_violation
+
+
 def estimate_violation_probability_mc(
     net: Any,
     cfg: ProjectConfig,
     *,
     n: int,
     rng: np.random.Generator,
+    progress: callable | None = None,
 ) -> MonteCarloEstimate:
     """
     Monte Carlo estimate of violation probability under EV scale N.
@@ -74,14 +99,35 @@ def estimate_violation_probability_mc(
     ev_idx = _ensure_ev_load_elements(net)
     buses = net.load.loc[ev_idx, "bus"].to_numpy()
     n_buses = len(ev_idx)
+    vmin = cfg.constraints.vmin_pu
+    vmax = cfg.constraints.vmax_pu
+    line_max = cfg.constraints.line_loading_max_percent
+    trafo_max = cfg.constraints.trafo_loading_max_percent
+
     # Ensure we're scoring a "no-EV" base operating point (net is reused across calls).
-    net.load.loc[ev_idx, "p_mw"] = 0.0
-    net.load.loc[ev_idx, "q_mvar"] = 0.0
+    base_case_safe = _base_case_is_safe(
+        net,
+        ev_idx=ev_idx,
+        vmin=vmin,
+        vmax=vmax,
+        line_max=line_max,
+        trafo_max=trafo_max,
+    )
+    if not base_case_safe:
+        n_scenarios = int(max(cfg.hosting_capacity.scenarios, 0))
+        return MonteCarloEstimate(
+            n=n_scenarios,
+            n_events=n_scenarios,
+            p_hat=1.0,
+            ci95_low=1.0,
+            ci95_high=1.0,
+        )
+
     bus_score = _static_voltage_margin_score(
         net,
         buses=buses,
-        vmin=cfg.constraints.vmin_pu,
-        vmax=cfg.constraints.vmax_pu,
+        vmin=vmin,
+        vmax=vmax,
     )
 
     def simulate_event(rng_s: np.random.Generator) -> bool:
@@ -94,18 +140,27 @@ def estimate_violation_probability_mc(
             rng=rng_s,
         )  # shape: (T, n_buses)
 
-        for t in range(cfg.time.n_steps):
+        total_per_step = profile.sum(axis=1)
+        # Check time steps with highest total load first (most likely to violate).
+        # Skip steps with zero EV load (base case already verified safe).
+        nonzero_mask = total_per_step > 1e-9
+        if not nonzero_mask.any():
+            return False
+        nonzero_steps = np.where(nonzero_mask)[0]
+        step_order = nonzero_steps[np.argsort(-total_per_step[nonzero_steps])]
+
+        pf_init = "auto"
+        for t in step_order:
             net.load.loc[ev_idx, "p_mw"] = profile[t, :]
             try:
-                run_powerflow(net)
+                run_powerflow(net, init=pf_init)
+                pf_init = "results"  # warm-start subsequent solves
             except Exception:
+                pf_init = "auto"
                 return True
             v = check_violations(
-                net,
-                vmin=cfg.constraints.vmin_pu,
-                vmax=cfg.constraints.vmax_pu,
-                line_max=cfg.constraints.line_loading_max_percent,
-                trafo_max=cfg.constraints.trafo_loading_max_percent,
+                net, vmin=vmin, vmax=vmax,
+                line_max=line_max, trafo_max=trafo_max,
             )
             if v.any_violation:
                 return True
@@ -120,6 +175,9 @@ def estimate_violation_probability_mc(
         n_scenarios=cfg.hosting_capacity.scenarios,
         rng=rng,
         scenario_rng=scenario_rng,
+        early_stop_threshold=cfg.hosting_capacity.risk_tolerance,
+        progress=progress,
+        progress_every=5,
     )
 
 

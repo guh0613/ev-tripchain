@@ -88,3 +88,25 @@ def test_choose_spatial_target_bus_ignores_inf_distances() -> None:
         rng=rng,
     )
     assert navigation == 3
+
+
+def test_nearest_strategy_can_stay_on_current_bus() -> None:
+    dist_m = np.array(
+        [
+            [0.0, 100.0, 250.0],
+            [100.0, 0.0, 50.0],
+            [250.0, 50.0, 0.0],
+        ],
+        dtype=float,
+    )
+    rng = np.random.default_rng(0)
+
+    nearest = choose_spatial_target_bus(
+        src_bus_col=1,
+        strategy_name="nearest",
+        dist_m=dist_m,
+        candidate_bus_idx=np.array([0, 1, 2], dtype=int),
+        navigation_candidate_k=3,
+        rng=rng,
+    )
+    assert nearest == 1

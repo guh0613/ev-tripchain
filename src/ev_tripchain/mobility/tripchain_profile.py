@@ -3,19 +3,17 @@ from __future__ import annotations
 import numpy as np
 
 from ev_tripchain.mobility.mapping import NodeBusMapping
-from ev_tripchain.mobility.soc import SOCEvolutionParams, sample_initial_soc
+from ev_tripchain.mobility.soc import (
+    ChargingDecision,
+    SOCEvolutionParams,
+    simulate_soc_and_bus_profile,
+)
 from ev_tripchain.mobility.spatial import choose_spatial_target_bus
 from ev_tripchain.mobility.trip_chain import Stop, TripChain
 from ev_tripchain.mobility.tripchain_sampling import (
     TripChainSamplingParams,
     sample_daily_trip_chain,
 )
-
-
-def _overlap_minutes(a0: float, a1: float, b0: float, b1: float) -> float:
-    lo = max(float(a0), float(b0))
-    hi = min(float(a1), float(b1))
-    return max(0.0, hi - lo)
 
 
 def _is_in_window(minute: int, *, window_start: int, window_end: int) -> bool:
@@ -79,6 +77,8 @@ def build_ev_profile_mw_tripchain(
     bus_distance_m: np.ndarray | None = None,
     candidate_bus_idx: np.ndarray | None = None,
     bus_score: np.ndarray | None = None,
+    ordered_random_delay: bool = False,
+    dynamic_bus_score: bool = False,
     rng: np.random.Generator,
 ) -> np.ndarray:
     """
@@ -115,41 +115,29 @@ def build_ev_profile_mw_tripchain(
     else:
         ws, we = 0, 0
 
-    p_mw_max = float(soc_params.charge_power_kw) / 1000.0
     profile = np.zeros((int(n_steps), int(mapping.n_buses)), dtype=float)
+    peak_per_bus = np.zeros(int(mapping.n_buses), dtype=float)
+    p_mw_max = float(soc_params.charge_power_kw) / 1000.0
 
     def simulate_vehicle(tc: TripChain) -> None:
-        soc = float(sample_initial_soc(soc_params, rng=rng))
-        soc = float(np.clip(soc, soc_params.soc_min, soc_params.soc_max))
-        charge_purpose_set = set(soc_params.charge_purposes)
+        def decide_charge(
+            *,
+            stop_index: int,
+            stop: Stop,
+            arrival_minute: int,
+            departure_minute: int,
+            soc_at_arrival: float,
+            needed_kwh: float,
+            minutes_needed: int,
+            rng: np.random.Generator,
+        ) -> ChargingDecision | None:
+            del stop_index, soc_at_arrival, needed_kwh
 
-        # optional charging at the initial stop (e.g. home overnight before first departure)
-        for i_stop, st in enumerate(tc.stops):
-            # apply travel consumption at arrival (skip first stop)
-            if i_stop > 0:
-                dist_km = float(tc.leg_distance_km[i_stop - 1])
-                consume_kwh = dist_km * float(soc_params.consumption_kwh_per_km)
-                soc -= consume_kwh / float(soc_params.battery_capacity_kwh)
-                soc = float(np.clip(soc, soc_params.soc_min, soc_params.soc_max))
+            zone = int(stop.zone)
+            if zone < 0 or zone >= mapping.n_nodes:
+                return None
 
-            if st.departure_minute <= st.arrival_minute:
-                continue
-
-            if st.purpose not in charge_purpose_set:
-                continue
-            if i_stop == 0 and not soc_params.allow_initial_stop_charging:
-                continue
-            if soc > float(soc_params.charge_trigger_soc):
-                continue
-            if soc_params.charge_power_kw <= 0:
-                continue
-
-            needed_kwh = float(soc_params.battery_capacity_kwh) * (float(soc_params.soc_max) - soc)
-            if needed_kwh <= 0:
-                continue
-
-            # charging start may be delayed by "ordered" strategy.
-            charge_start = int(st.arrival_minute)
+            charge_start = int(arrival_minute)
             if strategy_name == "ordered":
                 charge_start = _next_window_start(
                     charge_start,
@@ -157,40 +145,20 @@ def build_ev_profile_mw_tripchain(
                     window_end=we,
                     day_minutes=day_minutes,
                 )
-            if charge_start >= int(st.departure_minute):
-                continue
+                if ordered_random_delay and charge_start < int(departure_minute):
+                    latest_start = int(departure_minute) - int(minutes_needed)
+                    if latest_start > charge_start:
+                        charge_start = int(rng.integers(charge_start, latest_start + 1))
+            if charge_start >= int(departure_minute):
+                return None
 
-            available_min = int(st.departure_minute - charge_start)
-            if available_min <= 0:
-                continue
-
-            max_batt_kwh = (
-                float(soc_params.charge_power_kw)
-                * (available_min / 60.0)
-                * float(soc_params.charge_efficiency)
-            )
-            batt_kwh = min(needed_kwh, max_batt_kwh)
-            if batt_kwh <= 0:
-                continue
-
-            # compute actual charging duration (may be less than dwell)
-            charge_minutes = (
-                batt_kwh
-                / (float(soc_params.charge_power_kw) * float(soc_params.charge_efficiency))
-            ) * 60.0
-            charge_minutes = float(min(float(available_min), max(0.0, charge_minutes)))
-            if charge_minutes <= 0.0:
-                continue
-
-            charge_start_f = float(charge_start)
-            charge_end = float(min(charge_start_f + charge_minutes, float(st.departure_minute)))
-
-            zone = int(st.zone)
-            if zone < 0 or zone >= mapping.n_nodes:
-                continue
             src_bcol = int(zone_to_bus_col[zone])
             bcol = src_bcol
             if strategy_name in {"nearest", "navigation"} and mapping.n_buses > 1:
+                effective_score = bus_score
+                if dynamic_bus_score and strategy_name == "navigation":
+                    load_penalty = 1.0 / (1.0 + peak_per_bus / max(p_mw_max, 1e-9))
+                    effective_score = load_penalty if bus_score is None else bus_score * load_penalty
                 bcol = choose_spatial_target_bus(
                     src_bus_col=src_bcol,
                     strategy_name=strategy_name,
@@ -199,25 +167,24 @@ def build_ev_profile_mw_tripchain(
                     navigation_candidate_k=navigation_candidate_k,
                     navigation_distance_limit_m=navigation_distance_limit_m,
                     navigation_distance_beta=navigation_distance_beta,
-                    candidate_bus_score=bus_score,
+                    candidate_bus_score=effective_score,
                     rng=rng,
                 )
+            return ChargingDecision(start_minute=charge_start, bus_col=bcol)
 
-            k0 = int(np.floor(charge_start_f / float(step_minutes)))
-            k1 = int(np.ceil(charge_end / float(step_minutes)))
-            k0 = max(0, k0)
-            k1 = min(int(n_steps), k1)
-
-            for k in range(k0, k1):
-                t0 = float(k * int(step_minutes))
-                t1 = float(t0 + int(step_minutes))
-                ov = _overlap_minutes(t0, t1, charge_start_f, charge_end)
-                if ov:
-                    profile[k, bcol] += p_mw_max * (ov / float(step_minutes))
-
-            # update SOC after charging
-            soc += batt_kwh / float(soc_params.battery_capacity_kwh)
-            soc = float(np.clip(soc, soc_params.soc_min, soc_params.soc_max))
+        _, vehicle_p_kw = simulate_soc_and_bus_profile(
+            tc,
+            soc_params,
+            step_minutes=int(step_minutes),
+            n_steps=int(n_steps),
+            n_buses=int(mapping.n_buses),
+            charging_decision_fn=decide_charge,
+            rng=rng,
+        )
+        vehicle_profile_mw = vehicle_p_kw / 1000.0
+        profile[:, :] += vehicle_profile_mw
+        if dynamic_bus_score and strategy_name == "navigation":
+            peak_per_bus[:] = np.maximum(peak_per_bus, vehicle_profile_mw.max(axis=0))
 
     for _ in range(n_vehicles):
         tc = sample_daily_trip_chain(trip_params, rng=rng)

@@ -90,6 +90,24 @@ strategy:
     assert prob > 0.0
 
 
+def test_base_case_violation_is_not_reported_safe() -> None:
+    cfg = ProjectConfig(
+        seed=1,
+        case={"name": "simple", "load_scale": 1.0},
+        constraints={
+            "vmin_pu": 0.999,
+            "vmax_pu": 1.05,
+            "line_loading_max_percent": 100.0,
+            "trafo_loading_max_percent": 100.0,
+        },
+        hosting_capacity={"scenarios": 5},
+    )
+    net = load_case(cfg.case.name, load_scale=cfg.case.load_scale)
+
+    prob = estimate_violation_probability(net, cfg, n=0, rng=np.random.default_rng(cfg.seed))
+    assert prob == 1.0
+
+
 def test_profile_dispatcher_sessions(tmp_path: Path) -> None:
     """build_ev_profile_mw dispatches correctly for synthetic_sessions model."""
     cfg_yaml = tmp_path / "cfg.yaml"
@@ -191,8 +209,8 @@ def test_ieee33_line_loading_percent_is_meaningful() -> None:
     assert float(net.res_line.loading_percent.max()) > 1.0
 
 
-def test_synthetic_nearest_is_not_identical_to_uncontrolled(tmp_path: Path) -> None:
-    """Nearest strategy should produce different spatial profile from uncontrolled."""
+def test_synthetic_nearest_keeps_sessions_on_current_bus_when_available(tmp_path: Path) -> None:
+    """Nearest should reduce to the source bus when the current bus is a valid candidate."""
     cfg_yaml = tmp_path / "cfg.yaml"
     cfg_yaml.write_text(
         """
@@ -225,7 +243,49 @@ strategy:
     p_u = build_ev_profile_mw(cfg=cfg_u, n_vehicles=200, buses=buses, n_buses=n_buses, rng=rng_u)
     p_n = build_ev_profile_mw(cfg=cfg_n, n_vehicles=200, buses=buses, n_buses=n_buses, rng=rng_n)
 
-    assert not np.allclose(p_u, p_n)
+    assert np.allclose(p_u, p_n)
+
+
+def test_synthetic_sessions_keep_stable_prefix_under_common_seed(tmp_path: Path) -> None:
+    cfg_yaml = tmp_path / "cfg.yaml"
+    cfg_yaml.write_text(
+        """
+seed: 42
+case:
+  name: simple
+  load_scale: 0.5
+ev:
+  charge_power_kw: 7.2
+  sessions_per_vehicle_mean: 1.0
+  duration_minutes_mean: 120
+  duration_minutes_std: 20
+strategy:
+  name: uncontrolled
+""",
+        encoding="utf-8",
+    )
+    cfg = load_config(cfg_yaml)
+    net = load_case(cfg.case.name, load_scale=cfg.case.load_scale)
+    ev_idx = _ensure_ev_load_elements(net)
+    buses = net.load.loc[ev_idx, "bus"].to_numpy()
+    n_buses = len(ev_idx)
+
+    p_small = build_ev_profile_mw(
+        cfg=cfg,
+        n_vehicles=5,
+        buses=buses,
+        n_buses=n_buses,
+        rng=np.random.default_rng(123),
+    )
+    p_large = build_ev_profile_mw(
+        cfg=cfg,
+        n_vehicles=6,
+        buses=buses,
+        n_buses=n_buses,
+        rng=np.random.default_rng(123),
+    )
+
+    assert np.all(p_large >= p_small - 1e-12)
 
 
 def test_tripchain_ordered_strategy_changes_profile(tmp_path: Path) -> None:

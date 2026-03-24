@@ -163,8 +163,6 @@ def choose_spatial_target_bus(
         candidates = np.arange(dist_m.shape[1], dtype=int)
     else:
         candidates = np.asarray(candidate_bus_idx, dtype=int).reshape(-1)
-
-    candidates = candidates[candidates != src]
     if candidates.size == 0:
         return src
 

@@ -16,25 +16,44 @@ def binary_search_max_n(
 
     Returns (n_star, sampled_curve) where curve contains (N, risk(N)) pairs visited.
     """
-    lo = 0
-    hi = n_max
-    curve: list[tuple[int, float]] = []
+    sampled: dict[int, float] = {}
 
-    while (hi - lo) > min_step and len(curve) < max_iter:
+    def eval_risk(n: int) -> float:
+        nn = int(n)
+        if nn not in sampled:
+            sampled[nn] = float(risk_at_n(nn))
+        return sampled[nn]
+
+    lo = 0
+    hi = int(max(n_max, 0))
+
+    r0 = eval_risk(0)
+    if r0 > risk_tolerance:
+        return 0, sorted(sampled.items())
+
+    if hi == 0:
+        return 0, sorted(sampled.items())
+
+    r_hi = eval_risk(hi)
+    if r_hi <= risk_tolerance:
+        return hi, sorted(sampled.items())
+
+    iterations = 0
+    while (hi - lo) > min_step and iterations < max_iter:
         mid = (lo + hi) // 2
-        r = float(risk_at_n(mid))
-        curve.append((mid, r))
-        if r <= risk_tolerance:
+        if mid <= lo or mid >= hi:
+            break
+        r_mid = eval_risk(mid)
+        if r_mid <= risk_tolerance:
             lo = mid
         else:
             hi = mid
+        iterations += 1
 
-    # ensure boundary points are included
-    for n in {lo, hi}:
-        if not any(x == n for x, _ in curve):
-            curve.append((n, float(risk_at_n(n))))
+    # Verify the full final bracket so we do not skip the true boundary.
+    for n in range(lo + 1, hi):
+        eval_risk(n)
 
-    curve.sort(key=lambda x: x[0])
+    curve = sorted(sampled.items())
     n_star = max((n for n, r in curve if r <= risk_tolerance), default=0)
     return n_star, curve
-

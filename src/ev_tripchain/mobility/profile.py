@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from functools import lru_cache
+
 import numpy as np
 
 from ev_tripchain.config import ProjectConfig
@@ -17,6 +19,43 @@ from ev_tripchain.mobility.tripchain_sampling import TripChainSamplingParams
 def _parse_hhmm_to_minutes(hhmm: str) -> int:
     hh, mm = hhmm.strip().split(":")
     return int(hh) * 60 + int(mm)
+
+
+@lru_cache(maxsize=32)
+def _cached_random_onehot_mapping(
+    *,
+    n_nodes: int,
+    bus_ids_key: tuple[int, ...],
+    seed: int,
+):
+    rng_map = np.random.default_rng(np.random.SeedSequence([int(seed), 701]))
+    return build_random_onehot_mapping(
+        n_nodes=int(n_nodes),
+        bus_ids=np.asarray(bus_ids_key, dtype=int),
+        rng=rng_map,
+    )
+
+
+@lru_cache(maxsize=32)
+def _cached_mapping_from_pairs(
+    *,
+    n_nodes: int,
+    bus_ids_key: tuple[int, ...],
+    node_bus_pairs_key: tuple[tuple[int, int], ...],
+):
+    return build_mapping_from_node_bus_pairs(
+        n_nodes=int(n_nodes),
+        bus_ids=np.asarray(bus_ids_key, dtype=int),
+        node_bus_pairs=list(node_bus_pairs_key),
+    )
+
+
+@lru_cache(maxsize=32)
+def _cached_spatial_model(bus_ids_key: tuple[int, ...]):
+    return build_spatial_distance_model(
+        buses=np.asarray(bus_ids_key, dtype=int),
+        n_buses=len(bus_ids_key),
+    )
 
 
 def build_ev_profile_mw(
@@ -46,16 +85,22 @@ def build_ev_profile_mw(
 
     # trip-chain + SOC model
     bus_ids = np.asarray(buses, dtype=int)
+    bus_ids_key = tuple(int(x) for x in bus_ids.tolist())
     n_nodes = int(cfg.mobility.mapping.n_nodes)
 
     # mapping is treated as system data: deterministic w.r.t cfg.seed (not per-scenario RNG)
-    rng_map = np.random.default_rng(np.random.SeedSequence([int(cfg.seed), 701]))
     if cfg.mobility.mapping.policy == "from_pairs":
-        mapping = build_mapping_from_node_bus_pairs(
-            n_nodes=n_nodes, bus_ids=bus_ids, node_bus_pairs=cfg.mobility.mapping.node_bus_pairs
+        mapping = _cached_mapping_from_pairs(
+            n_nodes=n_nodes,
+            bus_ids_key=bus_ids_key,
+            node_bus_pairs_key=tuple((int(a), int(b)) for a, b in cfg.mobility.mapping.node_bus_pairs),
         )
     else:
-        mapping = build_random_onehot_mapping(n_nodes=n_nodes, bus_ids=bus_ids, rng=rng_map)
+        mapping = _cached_random_onehot_mapping(
+            n_nodes=n_nodes,
+            bus_ids_key=bus_ids_key,
+            seed=int(cfg.seed),
+        )
 
     tc_cfg = cfg.mobility.trip_chain
     trip_params = TripChainSamplingParams(
@@ -97,10 +142,7 @@ def build_ev_profile_mw(
     bus_distance_m: np.ndarray | None = None
     candidate_bus_idx: np.ndarray | None = None
     if cfg.strategy.name in {"nearest", "navigation"}:
-        spatial_model = build_spatial_distance_model(
-            buses=bus_ids,
-            n_buses=int(n_buses),
-        )
+        spatial_model = _cached_spatial_model(bus_ids_key)
         bus_distance_m = spatial_model.dist_m
         candidate_bus_idx = spatial_model.candidate_bus_idx
 
@@ -119,6 +161,8 @@ def build_ev_profile_mw(
         bus_distance_m=bus_distance_m,
         candidate_bus_idx=candidate_bus_idx,
         bus_score=bus_score,
+        ordered_random_delay=cfg.strategy.ordered.random_delay,
+        dynamic_bus_score=cfg.strategy.navigation.dynamic_scoring,
         rng=rng,
     )
     # safety: align to expected columns

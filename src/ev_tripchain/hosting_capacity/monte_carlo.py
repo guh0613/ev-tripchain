@@ -43,22 +43,54 @@ def estimate_event_probability(
     n_scenarios: int,
     rng: np.random.Generator,
     scenario_rng: Callable[[int], np.random.Generator] | None = None,
+    early_stop_threshold: float | None = None,
+    progress: Callable[[str], None] | None = None,
+    progress_every: int = 0,
 ) -> MonteCarloEstimate:
     """
     Estimate P(event) via Monte Carlo over `n_scenarios`.
 
     `simulate_event(rng)` should return True when the scenario is counted as an event.
+
+    When `early_stop_threshold` is set, stops early once the Wilson CI lower bound
+    exceeds the threshold (clearly violating) or the upper bound drops below it
+    (clearly safe).
     """
     n = int(max(n_scenarios, 0))
     n_events = 0
+    actually_run = n
     for i in range(n):
         r = scenario_rng(i) if scenario_rng is not None else rng
         n_events += int(bool(simulate_event(r)))
 
-    p_hat = n_events / n if n > 0 else 0.0
-    ci_low, ci_high = _wilson_ci_95(n=n, n_events=n_events)
+        if progress is not None:
+            should_report = (i == 0) or (i + 1 == n)
+            if progress_every > 0 and (i + 1) % progress_every == 0:
+                should_report = True
+            if should_report:
+                progress(f"scenarios {i + 1}/{n}, violations={n_events}")
+
+        # Early stopping: once we have enough evidence, stop running more scenarios.
+        # Use a stricter violation threshold to avoid premature stopping for borderline cases.
+        if early_stop_threshold is not None and (i + 1) >= 5:
+            ci_lo, ci_hi = _wilson_ci_95(n=i + 1, n_events=n_events)
+            if ci_lo > early_stop_threshold * 3:
+                # Clearly well above threshold — no point running more
+                actually_run = i + 1
+                if progress is not None:
+                    progress(f"early stop at {actually_run}/{n}: CI lower={ci_lo:.4f} > {early_stop_threshold * 3:.4f}")
+                break
+            if ci_hi <= early_stop_threshold:
+                # Clearly below threshold — further samples cannot change the decision much
+                actually_run = i + 1
+                if progress is not None:
+                    progress(f"early stop at {actually_run}/{n}: CI upper={ci_hi:.4f} <= {early_stop_threshold:.4f}")
+                break
+
+    p_hat = n_events / actually_run if actually_run > 0 else 0.0
+    ci_low, ci_high = _wilson_ci_95(n=actually_run, n_events=n_events)
     return MonteCarloEstimate(
-        n=n,
+        n=actually_run,
         n_events=n_events,
         p_hat=float(p_hat),
         ci95_low=ci_low,
