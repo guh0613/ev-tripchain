@@ -13,7 +13,7 @@ from typing import Any
 import numpy as np
 
 from ev_tripchain.config import ProjectConfig
-from ev_tripchain.grid.constraints import check_violations
+from ev_tripchain.grid.constraints import evaluate_constraints
 from ev_tripchain.grid.powerflow import run_powerflow
 from ev_tripchain.hosting_capacity.search import binary_search_max_n
 
@@ -83,14 +83,15 @@ def run_deterministic_hc(
             run_powerflow(net)
         except Exception:
             return 1.0
-        v = check_violations(
+        assessment = evaluate_constraints(
             net,
             vmin=cfg.constraints.vmin_pu,
             vmax=cfg.constraints.vmax_pu,
             line_max=cfg.constraints.line_loading_max_percent,
             trafo_max=cfg.constraints.trafo_loading_max_percent,
+            nominal_voltage_pu=cfg.constraints.nominal_voltage_pu,
         )
-        return 1.0 if v.any_violation else 0.0
+        return 1.0 if assessment.hard.any_exceedance else 0.0
 
     n_star, curve = binary_search_max_n(
         risk_at_n,

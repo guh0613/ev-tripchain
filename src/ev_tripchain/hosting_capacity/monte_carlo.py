@@ -11,12 +11,43 @@ class ScenarioEventFn(Protocol):
 
 
 @dataclass(frozen=True)
+class ProbabilityEstimate:
+    n_events: int
+    p_hat: float
+    ci95_low: float
+    ci95_high: float
+
+
+@dataclass(frozen=True)
+class HardConstraintProbabilityBreakdown:
+    any_limit_exceedance: ProbabilityEstimate
+    voltage_limit_exceedance: ProbabilityEstimate
+    line_limit_exceedance: ProbabilityEstimate
+    trafo_limit_exceedance: ProbabilityEstimate
+    solver_failure: ProbabilityEstimate
+
+
+@dataclass(frozen=True)
+class SoftMetricAggregate:
+    mean_peak_voltage_deviation_pu: float = 0.0
+    max_peak_voltage_deviation_pu: float = 0.0
+    mean_peak_network_loss_mw: float = 0.0
+    max_peak_network_loss_mw: float = 0.0
+    mean_peak_line_loading_percent: float = 0.0
+    max_peak_line_loading_percent: float = 0.0
+    mean_peak_trafo_loading_percent: float = 0.0
+    max_peak_trafo_loading_percent: float = 0.0
+
+
+@dataclass(frozen=True)
 class MonteCarloEstimate:
     n: int
     n_events: int
     p_hat: float
     ci95_low: float
     ci95_high: float
+    hard_constraints: HardConstraintProbabilityBreakdown | None = None
+    soft_metrics: SoftMetricAggregate | None = None
 
 
 def _wilson_ci_95(*, n: int, n_events: int) -> tuple[float, float]:
@@ -37,6 +68,17 @@ def _wilson_ci_95(*, n: int, n_events: int) -> tuple[float, float]:
     return low, high
 
 
+def build_probability_estimate(*, n: int, n_events: int) -> ProbabilityEstimate:
+    ci95_low, ci95_high = _wilson_ci_95(n=n, n_events=n_events)
+    p_hat = n_events / n if n > 0 else 0.0
+    return ProbabilityEstimate(
+        n_events=int(n_events),
+        p_hat=float(p_hat),
+        ci95_low=float(ci95_low),
+        ci95_high=float(ci95_high),
+    )
+
+
 def estimate_event_probability(
     simulate_event: ScenarioEventFn,
     *,
@@ -53,7 +95,7 @@ def estimate_event_probability(
     `simulate_event(rng)` should return True when the scenario is counted as an event.
 
     When `early_stop_threshold` is set, stops early once the Wilson CI lower bound
-    exceeds the threshold (clearly violating) or the upper bound drops below it
+    exceeds the threshold (clearly above target) or the upper bound drops below it
     (clearly safe).
     """
     n = int(max(n_scenarios, 0))
@@ -68,10 +110,10 @@ def estimate_event_probability(
             if progress_every > 0 and (i + 1) % progress_every == 0:
                 should_report = True
             if should_report:
-                progress(f"scenarios {i + 1}/{n}, violations={n_events}")
+                progress(f"scenarios {i + 1}/{n}, events={n_events}")
 
         # Early stopping: once we have enough evidence, stop running more scenarios.
-        # Use a stricter violation threshold to avoid premature stopping for borderline cases.
+        # Use a stricter threshold to avoid premature stopping for borderline cases.
         if early_stop_threshold is not None and (i + 1) >= 5:
             ci_lo, ci_hi = _wilson_ci_95(n=i + 1, n_events=n_events)
             if ci_lo > early_stop_threshold * 3:

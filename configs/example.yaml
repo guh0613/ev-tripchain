@@ -20,10 +20,13 @@ hosting_capacity:
     min_step: 10
 
 constraints:
-  vmin_pu: 0.95
-  vmax_pu: 1.05
-  line_loading_max_percent: 100.0
-  trafo_loading_max_percent: 100.0
+  hard:
+    vmin_pu: 0.95
+    vmax_pu: 1.05
+    line_loading_max_percent: 100.0
+    trafo_loading_max_percent: 100.0
+  soft:
+    nominal_voltage_pu: 1.0
 
 ev:
   charge_power_kw: 7.2

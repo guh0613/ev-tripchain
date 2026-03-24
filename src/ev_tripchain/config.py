@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Literal
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class CaseConfig(BaseModel):
@@ -52,11 +52,68 @@ class HostingCapacityConfig(BaseModel):
         return max(1, int(os.cpu_count() or 1))
 
 
-class ConstraintsConfig(BaseModel):
+class HardConstraintsConfig(BaseModel):
     vmin_pu: float = 0.95
     vmax_pu: float = 1.05
     line_loading_max_percent: float = 100.0
     trafo_loading_max_percent: float = 100.0
+
+
+class SoftConstraintsConfig(BaseModel):
+    nominal_voltage_pu: float = Field(
+        default=1.0,
+        description="Reference voltage used for soft metrics such as voltage deviation.",
+    )
+
+
+class ConstraintsConfig(BaseModel):
+    hard: HardConstraintsConfig = Field(default_factory=HardConstraintsConfig)
+    soft: SoftConstraintsConfig = Field(default_factory=SoftConstraintsConfig)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _upgrade_legacy_flat_shape(cls, data: object) -> object:
+        if data is None or not isinstance(data, dict):
+            return data
+        if "hard" in data or "soft" in data:
+            return data
+
+        hard_keys = {
+            "vmin_pu",
+            "vmax_pu",
+            "line_loading_max_percent",
+            "trafo_loading_max_percent",
+        }
+        soft_keys = {"nominal_voltage_pu"}
+
+        hard = {k: data[k] for k in hard_keys if k in data}
+        soft = {k: data[k] for k in soft_keys if k in data}
+        other = {
+            k: v
+            for k, v in data.items()
+            if k not in hard_keys and k not in soft_keys
+        }
+        return {**other, "hard": hard, "soft": soft}
+
+    @property
+    def vmin_pu(self) -> float:
+        return float(self.hard.vmin_pu)
+
+    @property
+    def vmax_pu(self) -> float:
+        return float(self.hard.vmax_pu)
+
+    @property
+    def line_loading_max_percent(self) -> float:
+        return float(self.hard.line_loading_max_percent)
+
+    @property
+    def trafo_loading_max_percent(self) -> float:
+        return float(self.hard.trafo_loading_max_percent)
+
+    @property
+    def nominal_voltage_pu(self) -> float:
+        return float(self.soft.nominal_voltage_pu)
 
 
 class StartTimeComponent(BaseModel):

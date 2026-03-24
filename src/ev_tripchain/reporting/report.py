@@ -1,8 +1,8 @@
 """Report orchestration: run analyses and generate all figures + tables.
 
 Usage from CLI:
-    uv run ev_tripchain report -c configs/tripchain_soc.yaml -o output/
-    uv run ev_tripchain report -c configs/tripchain_soc.yaml -o output/ --only 1,4,8
+    uv run ev-tripchain report -c configs/tripchain_soc.yaml -o output/
+    uv run ev-tripchain report -c configs/tripchain_soc.yaml -o output/ --only 1,4,8
 """
 
 from __future__ import annotations
@@ -190,12 +190,14 @@ def analyse_ordered_delay(cfg: ProjectConfig, n_vehicles: int = 500) -> dict:
     p_unc = _profile_total_kw(cfg, {"name": "uncontrolled"}, n_vehicles)
     p_no = _profile_total_kw(cfg, {"name": "ordered", "ordered": {"random_delay": False}}, n_vehicles)
     p_yes = _profile_total_kw(cfg, {"name": "ordered", "ordered": {"random_delay": True}}, n_vehicles)
+    model_label = "出行链 + SOC 模型" if cfg.mobility.model == "tripchain_soc" else "会话模型"
     return {
         "hours": hours,
         "p_uncontrolled": p_unc,
         "p_no_delay": p_no,
         "p_with_delay": p_yes,
         "n_vehicles": n_vehicles,
+        "model_label": model_label,
     }
 
 
@@ -420,9 +422,15 @@ def _generate_one(
         fig = figures.fig_model_comparison(data["hours"], data["total_sess_kw"], data["total_tc_kw"], data["n_vehicles"])
 
     elif fid == 7:
-        data = analyse_ordered_delay(cfg_tc)
+        cfg_delay = cfg_sess if cfg_sess is not None else cfg_tc
+        data = analyse_ordered_delay(cfg_delay)
         fig = figures.fig_ordered_delay(
-            data["hours"], data["p_uncontrolled"], data["p_no_delay"], data["p_with_delay"], data["n_vehicles"],
+            data["hours"],
+            data["p_uncontrolled"],
+            data["p_no_delay"],
+            data["p_with_delay"],
+            data["n_vehicles"],
+            model_label=data["model_label"],
         )
 
     elif fid == 8:

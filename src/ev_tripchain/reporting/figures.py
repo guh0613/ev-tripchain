@@ -90,7 +90,7 @@ def fig_charging_load(
 
 
 # ──────────────────────────────────────────────────────────
-# Fig 4: Risk curve (N vs violation probability)
+# Fig 4: Risk curve (N vs hard-limit exceedance probability)
 # ──────────────────────────────────────────────────────────
 def fig_risk_curve(
     risk_points: list[dict[str, Any]],
@@ -116,7 +116,7 @@ def fig_risk_curve(
         ax.axvline(x=n_star, color=COLORS["success"], linestyle=":", linewidth=1.5, label=f"$N^*$ = {n_star}")
 
     ax.set_xlabel("接入电动汽车数量（N）")
-    ax.set_ylabel("违规概率 $\\hat{\\pi}(N)$")
+    ax.set_ylabel("硬约束越限概率 $\\hat{\\pi}(N)$")
     ax.set_title("风险曲线：电动汽车概率承载力")
     ax.set_ylim(-0.02, 1.05)
     ax.legend(loc="upper left")
@@ -187,6 +187,7 @@ def fig_ordered_delay(
     p_no_delay: np.ndarray,
     p_with_delay: np.ndarray,
     n_vehicles: int,
+    model_label: str = "会话模型",
 ) -> Figure:
     fig, ax = plt.subplots(figsize=(8, 4))
 
@@ -197,7 +198,7 @@ def fig_ordered_delay(
     ax.axvspan(0, 6, alpha=0.08, color="blue")
     ax.set_xlabel("时刻 (h)")
     ax.set_ylabel("聚合充电功率 (kW)")
-    ax.set_title(f"有序充电随机延迟效果对比（{n_vehicles}辆EV）")
+    ax.set_title(f"有序充电随机延迟效果对比（{model_label}，{n_vehicles}辆EV）")
     ax.set_xlim(0, 24)
     ax.set_xticks(range(0, 25, 2))
     ax.legend(loc="upper left", fontsize=9)

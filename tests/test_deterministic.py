@@ -42,8 +42,8 @@ def test_deterministic_hc_gives_conservative_bound() -> None:
     assert det_result.n_star <= cfg.hosting_capacity.n_max
 
 
-def test_deterministic_zero_ev_no_violation() -> None:
-    """With 0 EVs, deterministic should report no violation."""
+def test_deterministic_zero_ev_no_hard_limit_exceedance() -> None:
+    """With 0 EVs, deterministic should report no hard-limit exceedance."""
     cfg = ProjectConfig(
         seed=42,
         case={"name": "simple", "load_scale": 0.3},
@@ -53,5 +53,5 @@ def test_deterministic_zero_ev_no_violation() -> None:
     net = load_case(cfg.case.name, load_scale=cfg.case.load_scale)
     result = run_deterministic_hc(net, cfg)
 
-    # Should find some non-zero N* since base case has no violations at load_scale=0.3
+    # Should find some non-zero N* since the base case is safe at load_scale=0.3.
     assert result.n_star >= 0

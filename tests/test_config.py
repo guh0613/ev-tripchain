@@ -29,3 +29,20 @@ def test_repo_configs_keep_p_hat_for_hosting_capacity_decision() -> None:
 def test_parallel_workers_auto_resolution_is_positive() -> None:
     cfg = ProjectConfig(hosting_capacity={"parallel_workers": 0})
     assert cfg.hosting_capacity.resolved_parallel_workers >= 1
+
+
+def test_constraints_support_legacy_flat_shape() -> None:
+    cfg = ProjectConfig(
+        constraints={
+            "vmin_pu": 0.94,
+            "vmax_pu": 1.06,
+            "line_loading_max_percent": 95.0,
+            "trafo_loading_max_percent": 90.0,
+            "nominal_voltage_pu": 1.01,
+        }
+    )
+    assert cfg.constraints.hard.vmin_pu == 0.94
+    assert cfg.constraints.hard.vmax_pu == 1.06
+    assert cfg.constraints.hard.line_loading_max_percent == 95.0
+    assert cfg.constraints.hard.trafo_loading_max_percent == 90.0
+    assert cfg.constraints.soft.nominal_voltage_pu == 1.01

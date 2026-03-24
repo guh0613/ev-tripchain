@@ -7,13 +7,14 @@ from ev_tripchain.grid.cases import load_case
 from ev_tripchain.grid.powerflow import run_powerflow
 from ev_tripchain.hosting_capacity.evaluate import (
     _ensure_ev_load_elements,
-    estimate_violation_probability,
+    estimate_hard_exceedance_probability,
+    estimate_hard_exceedance_probability_mc,
 )
 from ev_tripchain.mobility.profile import build_ev_profile_mw
 
 
-def test_evaluate_violation_probability_with_simple_case(tmp_path: Path) -> None:
-    """Integration test: estimate_violation_probability on the simple 4-bus case."""
+def test_evaluate_hard_exceedance_probability_with_simple_case(tmp_path: Path) -> None:
+    """Integration test: estimate_hard_exceedance_probability on the simple 4-bus case."""
     cfg_yaml = tmp_path / "cfg.yaml"
     cfg_yaml.write_text(
         """
@@ -28,10 +29,13 @@ hosting_capacity:
   scenarios: 5
   risk_tolerance: 0.05
 constraints:
-  vmin_pu: 0.95
-  vmax_pu: 1.05
-  line_loading_max_percent: 100.0
-  trafo_loading_max_percent: 100.0
+  hard:
+    vmin_pu: 0.95
+    vmax_pu: 1.05
+    line_loading_max_percent: 100.0
+    trafo_loading_max_percent: 100.0
+  soft:
+    nominal_voltage_pu: 1.0
 ev:
   charge_power_kw: 7.2
   sessions_per_vehicle_mean: 1.0
@@ -46,13 +50,13 @@ strategy:
     net = load_case(cfg.case.name, load_scale=cfg.case.load_scale)
 
     rng = np.random.default_rng(cfg.seed)
-    prob = estimate_violation_probability(net, cfg, n=0, rng=rng)
-    # with 0 EVs and reduced base load, there should be no violations
+    prob = estimate_hard_exceedance_probability(net, cfg, n=0, rng=rng)
+    # with 0 EVs and reduced base load, there should be no hard-limit exceedances
     assert prob == 0.0
 
 
-def test_evaluate_high_n_causes_violations(tmp_path: Path) -> None:
-    """With many EVs on a small network, violations should occur."""
+def test_evaluate_high_n_causes_hard_limit_exceedance(tmp_path: Path) -> None:
+    """With many EVs on a small network, hard-limit exceedance should occur."""
     cfg_yaml = tmp_path / "cfg.yaml"
     cfg_yaml.write_text(
         """
@@ -85,12 +89,12 @@ strategy:
     net = load_case(cfg.case.name, load_scale=cfg.case.load_scale)
 
     rng = np.random.default_rng(cfg.seed)
-    prob = estimate_violation_probability(net, cfg, n=500, rng=rng)
-    # 500 EVs at 50kW each on a small network should trigger violations
+    prob = estimate_hard_exceedance_probability(net, cfg, n=500, rng=rng)
+    # 500 EVs at 50kW each on a small network should trigger hard-limit exceedance
     assert prob > 0.0
 
 
-def test_base_case_violation_is_not_reported_safe() -> None:
+def test_base_case_limit_exceedance_is_not_reported_safe() -> None:
     cfg = ProjectConfig(
         seed=1,
         case={"name": "simple", "load_scale": 1.0},
@@ -104,8 +108,54 @@ def test_base_case_violation_is_not_reported_safe() -> None:
     )
     net = load_case(cfg.case.name, load_scale=cfg.case.load_scale)
 
-    prob = estimate_violation_probability(net, cfg, n=0, rng=np.random.default_rng(cfg.seed))
+    prob = estimate_hard_exceedance_probability(
+        net,
+        cfg,
+        n=0,
+        rng=np.random.default_rng(cfg.seed),
+    )
     assert prob == 1.0
+
+
+def test_mc_estimate_contains_hard_and_soft_breakdown(tmp_path: Path) -> None:
+    cfg_yaml = tmp_path / "cfg.yaml"
+    cfg_yaml.write_text(
+        """
+seed: 99
+case:
+  name: simple
+  load_scale: 0.3
+hosting_capacity:
+  scenarios: 5
+constraints:
+  hard:
+    vmin_pu: 0.95
+    vmax_pu: 1.05
+    line_loading_max_percent: 100.0
+    trafo_loading_max_percent: 100.0
+  soft:
+    nominal_voltage_pu: 1.0
+ev:
+  charge_power_kw: 7.2
+strategy:
+  name: uncontrolled
+""",
+        encoding="utf-8",
+    )
+    cfg = load_config(cfg_yaml)
+    net = load_case(cfg.case.name, load_scale=cfg.case.load_scale)
+
+    est = estimate_hard_exceedance_probability_mc(
+        net,
+        cfg,
+        n=50,
+        rng=np.random.default_rng(cfg.seed),
+    )
+    assert est.hard_constraints is not None
+    assert est.soft_metrics is not None
+    assert est.hard_constraints.any_limit_exceedance.p_hat == est.p_hat
+    assert est.hard_constraints.any_limit_exceedance.n_events == est.n_events
+    assert est.soft_metrics.mean_peak_network_loss_mw >= 0.0
 
 
 def test_profile_dispatcher_sessions(tmp_path: Path) -> None:

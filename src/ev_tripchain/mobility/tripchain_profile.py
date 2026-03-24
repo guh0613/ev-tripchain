@@ -184,7 +184,10 @@ def build_ev_profile_mw_tripchain(
         vehicle_profile_mw = vehicle_p_kw / 1000.0
         profile[:, :] += vehicle_profile_mw
         if dynamic_bus_score and strategy_name == "navigation":
-            peak_per_bus[:] = np.maximum(peak_per_bus, vehicle_profile_mw.max(axis=0))
+            # Use the aggregated profile seen so far, not the single-vehicle profile.
+            # Otherwise the load penalty saturates after the first assignment and
+            # dynamic navigation becomes effectively indistinguishable from static scoring.
+            peak_per_bus[:] = np.maximum(peak_per_bus, profile.max(axis=0))
 
     for _ in range(n_vehicles):
         tc = sample_daily_trip_chain(trip_params, rng=rng)

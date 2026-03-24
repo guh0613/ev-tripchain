@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import asdict
 
 from pydantic import BaseModel
 
@@ -9,12 +10,38 @@ from ev_tripchain.grid.cases import load_case
 from ev_tripchain.hosting_capacity.deterministic import run_deterministic_hc
 from ev_tripchain.hosting_capacity.evaluate import (
     create_mc_parallel_context,
-    estimate_violation_probability_mc,
+    estimate_hard_exceedance_probability_mc,
 )
 from ev_tripchain.hosting_capacity.monte_carlo import MonteCarloEstimate
 from ev_tripchain.hosting_capacity.search import binary_search_max_n
 from ev_tripchain.hosting_capacity.sensitivity import run_sensitivity_hc
 from ev_tripchain.rng import make_rng_for
+
+
+class ProbabilityPoint(BaseModel):
+    n_events: int
+    p_hat: float
+    ci95_low: float
+    ci95_high: float
+
+
+class HardConstraintBreakdown(BaseModel):
+    any_limit_exceedance: ProbabilityPoint
+    voltage_limit_exceedance: ProbabilityPoint
+    line_limit_exceedance: ProbabilityPoint
+    trafo_limit_exceedance: ProbabilityPoint
+    solver_failure: ProbabilityPoint
+
+
+class SoftMetricPoint(BaseModel):
+    mean_peak_voltage_deviation_pu: float
+    max_peak_voltage_deviation_pu: float
+    mean_peak_network_loss_mw: float
+    max_peak_network_loss_mw: float
+    mean_peak_line_loading_percent: float
+    max_peak_line_loading_percent: float
+    mean_peak_trafo_loading_percent: float
+    max_peak_trafo_loading_percent: float
 
 
 class RiskPoint(BaseModel):
@@ -23,6 +50,8 @@ class RiskPoint(BaseModel):
     ci95_low: float
     ci95_high: float
     metric: float
+    hard_constraints: HardConstraintBreakdown | None = None
+    soft_metrics: SoftMetricPoint | None = None
 
 
 class HostingCapacityResult(BaseModel):
@@ -67,7 +96,7 @@ def run_hosting_capacity(
                     progress(f"{prefix}evaluating N={nn}")
                 # deterministic per-N to keep binary search stable/reproducible
                 rng_n = make_rng_for(int(cfg.seed), nn)
-                est_cache[nn] = estimate_violation_probability_mc(
+                est_cache[nn] = estimate_hard_exceedance_probability_mc(
                     net,
                     cfg,
                     n=nn,
@@ -116,6 +145,20 @@ def run_hosting_capacity(
                 ci95_low=float(est_cache[int(n)].ci95_low),
                 ci95_high=float(est_cache[int(n)].ci95_high),
                 metric=float(r),
+                hard_constraints=(
+                    None
+                    if est_cache[int(n)].hard_constraints is None
+                    else HardConstraintBreakdown.model_validate(
+                        asdict(est_cache[int(n)].hard_constraints)
+                    )
+                ),
+                soft_metrics=(
+                    None
+                    if est_cache[int(n)].soft_metrics is None
+                    else SoftMetricPoint.model_validate(
+                        asdict(est_cache[int(n)].soft_metrics)
+                    )
+                ),
             )
             for n, r in curve
         ]

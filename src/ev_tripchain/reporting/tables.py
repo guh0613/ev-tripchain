@@ -25,12 +25,42 @@ def export_risk_curve(
 ) -> Path:
     pts = sorted(risk_points, key=lambda x: x["n"])
     rows = [
-        [p["n"], f"{p['p_hat']:.4f}", f"{p['ci95_low']:.4f}", f"{p['ci95_high']:.4f}"]
+        [
+            p["n"],
+            f"{p['p_hat']:.4f}",
+            f"{p['ci95_low']:.4f}",
+            f"{p['ci95_high']:.4f}",
+            f"{p.get('hard_constraints', {}).get('voltage_limit_exceedance', {}).get('p_hat', 0.0):.4f}",
+            f"{p.get('hard_constraints', {}).get('line_limit_exceedance', {}).get('p_hat', 0.0):.4f}",
+            f"{p.get('hard_constraints', {}).get('trafo_limit_exceedance', {}).get('p_hat', 0.0):.4f}",
+            f"{p.get('hard_constraints', {}).get('solver_failure', {}).get('p_hat', 0.0):.4f}",
+            f"{p.get('soft_metrics', {}).get('mean_peak_voltage_deviation_pu', 0.0):.4f}",
+            f"{p.get('soft_metrics', {}).get('mean_peak_network_loss_mw', 0.0):.4f}",
+            f"{p.get('soft_metrics', {}).get('mean_peak_line_loading_percent', 0.0):.4f}",
+            f"{p.get('soft_metrics', {}).get('mean_peak_trafo_loading_percent', 0.0):.4f}",
+        ]
         for p in pts
     ]
     rows.append([])
-    rows.append(["N*", n_star, "", ""])
-    return _write_csv(path, ["N", "p_hat", "ci95_low", "ci95_high"], rows)
+    rows.append(["N*", n_star, "", "", "", "", "", "", "", "", "", ""])
+    return _write_csv(
+        path,
+        [
+            "N",
+            "p_hat",
+            "ci95_low",
+            "ci95_high",
+            "voltage_p_hat",
+            "line_p_hat",
+            "trafo_p_hat",
+            "solver_failure_p_hat",
+            "mean_peak_voltage_deviation_pu",
+            "mean_peak_network_loss_mw",
+            "mean_peak_line_loading_percent",
+            "mean_peak_trafo_loading_percent",
+        ],
+        rows,
+    )
 
 
 def export_strategy_comparison(
