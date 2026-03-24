@@ -1,15 +1,51 @@
 from __future__ import annotations
 
+from concurrent.futures import ProcessPoolExecutor
+from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
 
 from ev_tripchain.config import ProjectConfig
+from ev_tripchain.grid.cases import load_case
 from ev_tripchain.grid.constraints import check_violations
 from ev_tripchain.grid.powerflow import run_powerflow
-from ev_tripchain.hosting_capacity.monte_carlo import MonteCarloEstimate, estimate_event_probability
+from ev_tripchain.hosting_capacity.monte_carlo import (
+    MonteCarloEstimate,
+    _wilson_ci_95,
+    estimate_event_probability,
+)
 from ev_tripchain.mobility.profile import build_ev_profile_mw
 from ev_tripchain.rng import make_rng_for
+
+
+@dataclass(frozen=True)
+class MCParallelContext:
+    max_workers: int
+    executor: ProcessPoolExecutor
+
+
+@dataclass(frozen=True)
+class _MCStaticContext:
+    ev_idx: tuple[int, ...]
+    buses: np.ndarray
+    n_buses: int
+    bus_score: np.ndarray
+    vmin: float
+    vmax: float
+    line_max: float
+    trafo_max: float
+
+
+@dataclass
+class _MCWorkerState:
+    cfg: ProjectConfig
+    net: Any
+    ctx: _MCStaticContext | None
+
+
+_MC_WORKER_STATE: _MCWorkerState | None = None
 
 
 def _ensure_ev_load_elements(net: Any) -> list[int]:
@@ -83,19 +119,7 @@ def _base_case_is_safe(
     ).any_violation
 
 
-def estimate_violation_probability_mc(
-    net: Any,
-    cfg: ProjectConfig,
-    *,
-    n: int,
-    rng: np.random.Generator,
-    progress: callable | None = None,
-) -> MonteCarloEstimate:
-    """
-    Monte Carlo estimate of violation probability under EV scale N.
-
-    A scenario is counted as 'violating' if ANY time step violates ANY hard constraint.
-    """
+def _prepare_mc_static_context(net: Any, cfg: ProjectConfig) -> _MCStaticContext | None:
     ev_idx = _ensure_ev_load_elements(net)
     buses = net.load.loc[ev_idx, "bus"].to_numpy()
     n_buses = len(ev_idx)
@@ -104,7 +128,6 @@ def estimate_violation_probability_mc(
     line_max = cfg.constraints.line_loading_max_percent
     trafo_max = cfg.constraints.trafo_loading_max_percent
 
-    # Ensure we're scoring a "no-EV" base operating point (net is reused across calls).
     base_case_safe = _base_case_is_safe(
         net,
         ev_idx=ev_idx,
@@ -114,6 +137,182 @@ def estimate_violation_probability_mc(
         trafo_max=trafo_max,
     )
     if not base_case_safe:
+        return None
+
+    bus_score = _static_voltage_margin_score(
+        net,
+        buses=buses,
+        vmin=vmin,
+        vmax=vmax,
+    )
+    return _MCStaticContext(
+        ev_idx=tuple(int(x) for x in ev_idx),
+        buses=buses,
+        n_buses=n_buses,
+        bus_score=bus_score,
+        vmin=float(vmin),
+        vmax=float(vmax),
+        line_max=float(line_max),
+        trafo_max=float(trafo_max),
+    )
+
+
+def _simulate_event_on_net(
+    *,
+    net: Any,
+    cfg: ProjectConfig,
+    ctx: _MCStaticContext,
+    n: int,
+    rng_s: np.random.Generator,
+) -> bool:
+    ev_idx = list(ctx.ev_idx)
+    net.load.loc[ev_idx, "p_mw"] = 0.0
+    net.load.loc[ev_idx, "q_mvar"] = 0.0
+    profile = build_ev_profile_mw(
+        cfg=cfg,
+        n_vehicles=n,
+        buses=ctx.buses,
+        n_buses=ctx.n_buses,
+        bus_score=ctx.bus_score,
+        rng=rng_s,
+    )  # shape: (T, n_buses)
+
+    total_per_step = profile.sum(axis=1)
+    nonzero_mask = total_per_step > 1e-9
+    if not nonzero_mask.any():
+        return False
+    nonzero_steps = np.where(nonzero_mask)[0]
+    step_order = nonzero_steps[np.argsort(-total_per_step[nonzero_steps])]
+
+    pf_init = "auto"
+    for t in step_order:
+        net.load.loc[ev_idx, "p_mw"] = profile[t, :]
+        try:
+            run_powerflow(net, init=pf_init)
+            pf_init = "results"
+        except Exception:
+            pf_init = "auto"
+            return True
+        v = check_violations(
+            net,
+            vmin=ctx.vmin,
+            vmax=ctx.vmax,
+            line_max=ctx.line_max,
+            trafo_max=ctx.trafo_max,
+        )
+        if v.any_violation:
+            return True
+    return False
+
+
+def _init_mc_worker(cfg_data: dict[str, Any]) -> None:
+    global _MC_WORKER_STATE
+    cfg = ProjectConfig.model_validate(cfg_data)
+    net = load_case(cfg.case.name, load_scale=cfg.case.load_scale)
+    ctx = _prepare_mc_static_context(net, cfg)
+    _MC_WORKER_STATE = _MCWorkerState(cfg=cfg, net=net, ctx=ctx)
+
+
+def _mc_worker_simulate(task: tuple[int, int]) -> bool:
+    state = _MC_WORKER_STATE
+    if state is None:
+        raise RuntimeError("MC worker state is not initialized.")
+    if state.ctx is None:
+        return True
+
+    n, scenario_idx = (int(task[0]), int(task[1]))
+    rng_s = make_rng_for(int(state.cfg.seed), 9103, int(scenario_idx))
+    return _simulate_event_on_net(
+        net=state.net,
+        cfg=state.cfg,
+        ctx=state.ctx,
+        n=n,
+        rng_s=rng_s,
+    )
+
+
+def create_mc_parallel_context(cfg: ProjectConfig) -> MCParallelContext | None:
+    hc = cfg.hosting_capacity
+    if not hc.common_random_numbers:
+        return None
+    n_scenarios = int(max(hc.scenarios, 0))
+    if n_scenarios < 2:
+        return None
+    max_workers = min(int(hc.resolved_parallel_workers), n_scenarios)
+    if max_workers <= 1:
+        return None
+    executor = ProcessPoolExecutor(
+        max_workers=max_workers,
+        initializer=_init_mc_worker,
+        initargs=(cfg.model_dump(),),
+    )
+    return MCParallelContext(max_workers=max_workers, executor=executor)
+
+
+def _estimate_event_probability_parallel(
+    *,
+    ctx: MCParallelContext,
+    cfg: ProjectConfig,
+    n: int,
+    progress: Callable[[str], None] | None,
+) -> MonteCarloEstimate:
+    total = int(max(cfg.hosting_capacity.scenarios, 0))
+    if total <= 0:
+        return MonteCarloEstimate(n=0, n_events=0, p_hat=0.0, ci95_low=0.0, ci95_high=1.0)
+
+    n_events = 0
+    executed = 0
+    batch = max(1, int(ctx.max_workers))
+
+    while executed < total:
+        stop = min(total, executed + batch)
+        tasks = [(int(n), i) for i in range(executed, stop)]
+        for hit in ctx.executor.map(_mc_worker_simulate, tasks):
+            n_events += int(bool(hit))
+        executed = stop
+
+        if progress is not None:
+            progress(f"scenarios {executed}/{total}, violations={n_events}")
+
+        if cfg.hosting_capacity.risk_tolerance is not None and executed >= 5:
+            ci_lo, ci_hi = _wilson_ci_95(n=executed, n_events=n_events)
+            threshold = float(cfg.hosting_capacity.risk_tolerance)
+            if ci_lo > threshold * 3:
+                if progress is not None:
+                    progress(f"early stop at {executed}/{total}: CI lower={ci_lo:.4f} > {threshold * 3:.4f}")
+                break
+            if ci_hi <= threshold:
+                if progress is not None:
+                    progress(f"early stop at {executed}/{total}: CI upper={ci_hi:.4f} <= {threshold:.4f}")
+                break
+
+    p_hat = n_events / executed if executed > 0 else 0.0
+    ci_low, ci_high = _wilson_ci_95(n=executed, n_events=n_events)
+    return MonteCarloEstimate(
+        n=executed,
+        n_events=n_events,
+        p_hat=float(p_hat),
+        ci95_low=float(ci_low),
+        ci95_high=float(ci_high),
+    )
+
+
+def estimate_violation_probability_mc(
+    net: Any,
+    cfg: ProjectConfig,
+    *,
+    n: int,
+    rng: np.random.Generator,
+    progress: Callable[[str], None] | None = None,
+    parallel: MCParallelContext | None = None,
+) -> MonteCarloEstimate:
+    """
+    Monte Carlo estimate of violation probability under EV scale N.
+
+    A scenario is counted as 'violating' if ANY time step violates ANY hard constraint.
+    """
+    static_ctx = _prepare_mc_static_context(net, cfg)
+    if static_ctx is None:
         n_scenarios = int(max(cfg.hosting_capacity.scenarios, 0))
         return MonteCarloEstimate(
             n=n_scenarios,
@@ -123,48 +322,22 @@ def estimate_violation_probability_mc(
             ci95_high=1.0,
         )
 
-    bus_score = _static_voltage_margin_score(
-        net,
-        buses=buses,
-        vmin=vmin,
-        vmax=vmax,
-    )
+    if parallel is not None and int(n) > 0:
+        return _estimate_event_probability_parallel(
+            ctx=parallel,
+            cfg=cfg,
+            n=int(n),
+            progress=progress,
+        )
 
     def simulate_event(rng_s: np.random.Generator) -> bool:
-        profile = build_ev_profile_mw(
+        return _simulate_event_on_net(
+            net=net,
             cfg=cfg,
-            n_vehicles=n,
-            buses=buses,
-            n_buses=n_buses,
-            bus_score=bus_score,
-            rng=rng_s,
-        )  # shape: (T, n_buses)
-
-        total_per_step = profile.sum(axis=1)
-        # Check time steps with highest total load first (most likely to violate).
-        # Skip steps with zero EV load (base case already verified safe).
-        nonzero_mask = total_per_step > 1e-9
-        if not nonzero_mask.any():
-            return False
-        nonzero_steps = np.where(nonzero_mask)[0]
-        step_order = nonzero_steps[np.argsort(-total_per_step[nonzero_steps])]
-
-        pf_init = "auto"
-        for t in step_order:
-            net.load.loc[ev_idx, "p_mw"] = profile[t, :]
-            try:
-                run_powerflow(net, init=pf_init)
-                pf_init = "results"  # warm-start subsequent solves
-            except Exception:
-                pf_init = "auto"
-                return True
-            v = check_violations(
-                net, vmin=vmin, vmax=vmax,
-                line_max=line_max, trafo_max=trafo_max,
-            )
-            if v.any_violation:
-                return True
-        return False
+            ctx=static_ctx,
+            n=int(n),
+            rng_s=rng_s,
+        )
 
     scenario_rng = None
     if cfg.hosting_capacity.common_random_numbers:

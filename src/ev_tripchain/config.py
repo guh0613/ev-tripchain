@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Literal
 
@@ -29,12 +30,26 @@ class HostingCapacityConfig(BaseModel):
         default=True,
         description="Use scenario-index RNGs (common random numbers) across N.",
     )
+    parallel_workers: int = Field(
+        default=1,
+        description=(
+            "Process workers for Monte Carlo scenario evaluation. "
+            "1 disables parallelism; 0 uses up to all available CPU cores."
+        ),
+    )
     risk_metric: Literal["p_hat", "ci95_high"] = Field(
         default="p_hat",
         description="Risk metric used for N* decision; thesis baseline uses p_hat and reports Wilson CI separately.",
     )
     n_max: int = 2000
     binary_search: BinarySearchConfig = Field(default_factory=BinarySearchConfig)
+
+    @property
+    def resolved_parallel_workers(self) -> int:
+        requested = int(self.parallel_workers)
+        if requested > 0:
+            return requested
+        return max(1, int(os.cpu_count() or 1))
 
 
 class ConstraintsConfig(BaseModel):

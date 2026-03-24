@@ -12,6 +12,7 @@ hosting_capacity:
   scenarios: 20
   risk_tolerance: 0.05
   common_random_numbers: true
+  parallel_workers: 0
   risk_metric: p_hat
   n_max: 3000
   binary_search:

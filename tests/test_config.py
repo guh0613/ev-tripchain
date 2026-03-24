@@ -15,6 +15,7 @@ def test_load_config_minimal(tmp_path: Path) -> None:
 def test_default_risk_metric_matches_report_definition() -> None:
     cfg = ProjectConfig()
     assert cfg.hosting_capacity.risk_metric == "p_hat"
+    assert cfg.hosting_capacity.parallel_workers == 1
 
 
 def test_repo_configs_keep_p_hat_for_hosting_capacity_decision() -> None:
@@ -22,3 +23,9 @@ def test_repo_configs_keep_p_hat_for_hosting_capacity_decision() -> None:
     for rel in ("configs/example.yaml", "configs/tripchain_soc.yaml"):
         cfg = load_config(repo_root / rel)
         assert cfg.hosting_capacity.risk_metric == "p_hat"
+        assert cfg.hosting_capacity.parallel_workers == 0
+
+
+def test_parallel_workers_auto_resolution_is_positive() -> None:
+    cfg = ProjectConfig(hosting_capacity={"parallel_workers": 0})
+    assert cfg.hosting_capacity.resolved_parallel_workers >= 1
