@@ -1,12 +1,13 @@
 seed: 42
 
 case:
-  name: ieee33
-  load_scale: 0.55
+  name: ieee33  # improved IEEE33; use case33bw for the raw open-tie pandapower feeder
+  load_scale: 1.0
 
 time:
   step_minutes: 15
   n_steps: 96
+  n_days: 2
 
 hosting_capacity:
   scenarios: 20
@@ -18,6 +19,7 @@ hosting_capacity:
   binary_search:
     max_iter: 14
     min_step: 10
+    initial_hi: 128
 
 constraints:
   hard:

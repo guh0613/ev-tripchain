@@ -23,11 +23,11 @@ from ev_tripchain.reporting.style import apply_style
 FIGURE_REGISTRY: dict[int, tuple[str, str, bool]] = {
     1: ("input_distributions", "输入分布（出发时间/日行驶里程）", False),
     2: ("soc_evolution", "单车SOC演化曲线", False),
-    3: ("charging_load", "聚合充电负荷曲线", False),
+    3: ("charging_load", "聚合充电负荷曲线（连续时序）", False),
     4: ("risk_curve", "风险曲线 N vs π(N)", True),
-    5: ("bus_voltage_profile", "各母线24h电压剖面", False),
-    6: ("model_comparison", "两种负荷模型对比", False),
-    7: ("ordered_delay", "有序充电随机延迟对比", False),
+    5: ("bus_voltage_profile", "各母线连续电压剖面", False),
+    6: ("model_comparison", "两种负荷模型连续时序对比", False),
+    7: ("ordered_delay", "有序充电随机延迟对比（含跨午夜窗口）", False),
     8: ("strategy_comparison", "充电策略N*对比", True),
     9: ("method_comparison", "评估方法对比", True),
     10: ("voltage_sensitivity", "电压灵敏度分析", False),
@@ -43,8 +43,18 @@ def _save_fig(fig: plt.Figure, outdir: Path, name: str, fmt: str = "png") -> Pat
 
 
 def _save_json(data: Any, path: Path) -> Path:
+    def _json_default(value: Any) -> Any:
+        if isinstance(value, np.ndarray):
+            return value.tolist()
+        if isinstance(value, np.generic):
+            return value.item()
+        return str(value)
+
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2, default=str) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2, default=_json_default) + "\n",
+        encoding="utf-8",
+    )
     return path
 
 
@@ -139,7 +149,7 @@ def _profile_total_kw(cfg: ProjectConfig, strategy: dict, n_vehicles: int = 500)
 
 def analyse_charging_load(cfg: ProjectConfig, n_vehicles: int = 1500) -> dict:
     total_kw = _profile_total_kw(cfg, {"name": "uncontrolled"}, n_vehicles)
-    hours = np.arange(cfg.time.n_steps) * (cfg.time.step_minutes / 60.0)
+    hours = np.arange(total_kw.shape[0]) * (cfg.time.step_minutes / 60.0)
     return {"hours": hours, "total_kw": total_kw, "n_vehicles": n_vehicles}
 
 
@@ -167,7 +177,7 @@ def analyse_bus_voltage_profile(cfg: ProjectConfig, n_vehicles: int = 1500) -> d
 
     prof = build_ev_profile_mw(cfg=cfg, n_vehicles=n_vehicles, buses=buses, n_buses=len(ev_idx), rng=rng)
 
-    n_steps = cfg.time.n_steps
+    n_steps = prof.shape[0]
     all_vm = np.zeros((n_steps, len(net.bus)), dtype=float)
     for t in range(n_steps):
         net.load.loc[ev_idx, "p_mw"] = prof[t, :]
@@ -181,15 +191,26 @@ def analyse_bus_voltage_profile(cfg: ProjectConfig, n_vehicles: int = 1500) -> d
 def analyse_model_comparison(cfg_tc: ProjectConfig, cfg_sess: ProjectConfig, n_vehicles: int = 1000) -> dict:
     total_tc_kw = _profile_total_kw(cfg_tc, {"name": "uncontrolled"}, n_vehicles)
     total_sess_kw = _profile_total_kw(cfg_sess, {"name": "uncontrolled"}, n_vehicles)
-    hours = np.arange(cfg_tc.time.n_steps) * (cfg_tc.time.step_minutes / 60.0)
+    hours = np.arange(total_tc_kw.shape[0]) * (cfg_tc.time.step_minutes / 60.0)
     return {"hours": hours, "total_sess_kw": total_sess_kw, "total_tc_kw": total_tc_kw, "n_vehicles": n_vehicles}
 
 
 def analyse_ordered_delay(cfg: ProjectConfig, n_vehicles: int = 500) -> dict:
-    hours = np.arange(cfg.time.n_steps) * (cfg.time.step_minutes / 60.0)
     p_unc = _profile_total_kw(cfg, {"name": "uncontrolled"}, n_vehicles)
     p_no = _profile_total_kw(cfg, {"name": "ordered", "ordered": {"random_delay": False}}, n_vehicles)
     p_yes = _profile_total_kw(cfg, {"name": "ordered", "ordered": {"random_delay": True}}, n_vehicles)
+    hours = np.arange(p_unc.shape[0]) * (cfg.time.step_minutes / 60.0)
+    step_hours = float(cfg.time.step_minutes) / 60.0
+    hour_of_day = np.mod(hours, 24.0)
+    overnight_mask = (hour_of_day >= 22.0) | (hour_of_day < 6.0)
+
+    def _summary(profile_kw: np.ndarray) -> dict[str, float]:
+        return {
+            "peak_kw": float(np.max(profile_kw)),
+            "energy_kwh": float(np.sum(profile_kw) * step_hours),
+            "overnight_energy_kwh": float(np.sum(profile_kw[overnight_mask]) * step_hours),
+        }
+
     model_label = "出行链 + SOC 模型" if cfg.mobility.model == "tripchain_soc" else "会话模型"
     return {
         "hours": hours,
@@ -198,6 +219,12 @@ def analyse_ordered_delay(cfg: ProjectConfig, n_vehicles: int = 500) -> dict:
         "p_with_delay": p_yes,
         "n_vehicles": n_vehicles,
         "model_label": model_label,
+        "n_days": int(cfg.time.n_days),
+        "summary": {
+            "uncontrolled": _summary(p_unc),
+            "ordered_no_delay": _summary(p_no),
+            "ordered_with_delay": _summary(p_yes),
+        },
     }
 
 
@@ -258,13 +285,13 @@ def analyse_methods(cfg: ProjectConfig) -> dict:
     t0 = time.time()
     _log("  [method] sensitivity running...")
     sens = run_sensitivity_hc(load_case(cfg.case.name, load_scale=cfg.case.load_scale), cfg)
-    times["sensitivity_weakest"] = time.time() - t0
-    results["sensitivity_weakest"] = sens.n_star_weakest
-    times["sensitivity_uniform"] = times["sensitivity_weakest"]  # same computation
-    results["sensitivity_uniform"] = sens.n_star_uniform
+    times["sensitivity_representative"] = time.time() - t0
+    results["sensitivity_representative"] = sens.n_star_representative
     _log(
         "  [method] sensitivity done: "
-        f"weakest = {sens.n_star_weakest}, uniform = {sens.n_star_uniform}"
+        f"representative = {sens.n_star_representative}, "
+        f"weakest = {sens.n_star_weakest}, "
+        f"uniform = {sens.n_star_uniform}"
     )
 
     t0 = time.time()
@@ -422,8 +449,7 @@ def _generate_one(
         fig = figures.fig_model_comparison(data["hours"], data["total_sess_kw"], data["total_tc_kw"], data["n_vehicles"])
 
     elif fid == 7:
-        cfg_delay = cfg_sess if cfg_sess is not None else cfg_tc
-        data = analyse_ordered_delay(cfg_delay)
+        data = analyse_ordered_delay(cfg_tc)
         fig = figures.fig_ordered_delay(
             data["hours"],
             data["p_uncontrolled"],
@@ -431,7 +457,16 @@ def _generate_one(
             data["p_with_delay"],
             data["n_vehicles"],
             model_label=data["model_label"],
+            summary=data["summary"],
         )
+        tables.export_ordered_delay(
+            tbl_dir / "ordered_delay.csv",
+            data["hours"],
+            data["p_uncontrolled"],
+            data["p_no_delay"],
+            data["p_with_delay"],
+        )
+        _save_json(data, data_dir / "ordered_delay.json")
 
     elif fid == 8:
         data = analyse_strategies(cfg_tc, cfg_sess)

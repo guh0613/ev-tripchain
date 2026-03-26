@@ -10,6 +10,7 @@ def binary_search_max_n(
     risk_tolerance: float,
     max_iter: int,
     min_step: int,
+    initial_hi: int = 128,
 ) -> tuple[int, list[tuple[int, float]]]:
     """
     Search N* = max{N: risk(N) <= epsilon} using risk monotonicity.
@@ -25,16 +26,26 @@ def binary_search_max_n(
         return sampled[nn]
 
     lo = 0
-    hi = int(max(n_max, 0))
+    hi_cap = int(max(n_max, 0))
 
     r0 = eval_risk(0)
     if r0 > risk_tolerance:
         return 0, sorted(sampled.items())
 
-    if hi == 0:
+    if hi_cap == 0:
         return 0, sorted(sampled.items())
 
+    hi = min(max(int(initial_hi), 1), hi_cap)
     r_hi = eval_risk(hi)
+
+    while r_hi <= risk_tolerance and hi < hi_cap:
+        lo = hi
+        next_hi = min(hi_cap, hi * 2)
+        if next_hi == hi:
+            break
+        hi = next_hi
+        r_hi = eval_risk(hi)
+
     if r_hi <= risk_tolerance:
         return hi, sorted(sampled.items())
 

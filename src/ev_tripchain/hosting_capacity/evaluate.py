@@ -17,6 +17,10 @@ from ev_tripchain.hosting_capacity.monte_carlo import (
     SoftMetricAggregate,
     build_probability_estimate,
 )
+from ev_tripchain.hosting_capacity.sensitivity import (
+    VoltageSensitivityModel,
+    build_voltage_sensitivity_model,
+)
 from ev_tripchain.rng import make_rng_for
 
 
@@ -32,6 +36,7 @@ class _MCStaticContext:
     buses: np.ndarray
     n_buses: int
     bus_score: np.ndarray
+    navigation_voltage_model: VoltageSensitivityModel | None
     vmin: float
     vmax: float
     line_max: float
@@ -288,11 +293,25 @@ def _prepare_mc_static_context(net: Any, cfg: ProjectConfig) -> _MCStaticContext
         vmin=float(hard_cfg.vmin_pu),
         vmax=float(hard_cfg.vmax_pu),
     )
+    navigation_voltage_model: VoltageSensitivityModel | None = None
+    if cfg.strategy.name == "navigation" and cfg.strategy.navigation.dynamic_scoring:
+        try:
+            navigation_voltage_model = build_voltage_sensitivity_model(
+                net,
+                ev_idx=ev_idx,
+                buses=buses,
+                vmin=float(hard_cfg.vmin_pu),
+                vmax=float(hard_cfg.vmax_pu),
+                line_max=float(hard_cfg.line_loading_max_percent),
+            )
+        except Exception:
+            navigation_voltage_model = None
     return _MCStaticContext(
         ev_idx=tuple(int(x) for x in ev_idx),
         buses=buses,
         n_buses=n_buses,
         bus_score=bus_score,
+        navigation_voltage_model=navigation_voltage_model,
         vmin=float(hard_cfg.vmin_pu),
         vmax=float(hard_cfg.vmax_pu),
         line_max=float(hard_cfg.line_loading_max_percent),
@@ -337,6 +356,7 @@ def _simulate_scenario_on_net(
         buses=ctx.buses,
         n_buses=ctx.n_buses,
         bus_score=ctx.bus_score,
+        navigation_voltage_model=ctx.navigation_voltage_model,
         rng=rng_s,
     )  # shape: (T, n_buses)
 

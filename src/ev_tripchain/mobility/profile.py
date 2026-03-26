@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -14,6 +15,9 @@ from ev_tripchain.mobility.spatial import build_spatial_distance_model
 from ev_tripchain.mobility.synthetic import build_ev_profile_mw as build_ev_profile_mw_sessions
 from ev_tripchain.mobility.tripchain_profile import build_ev_profile_mw_tripchain
 from ev_tripchain.mobility.tripchain_sampling import TripChainSamplingParams
+
+if TYPE_CHECKING:
+    from ev_tripchain.hosting_capacity.sensitivity import VoltageSensitivityModel
 
 
 def _parse_hhmm_to_minutes(hhmm: str) -> int:
@@ -65,6 +69,7 @@ def build_ev_profile_mw(
     buses: np.ndarray,
     n_buses: int,
     bus_score: np.ndarray | None = None,
+    navigation_voltage_model: VoltageSensitivityModel | None = None,
     rng: np.random.Generator,
 ) -> np.ndarray:
     """
@@ -80,32 +85,33 @@ def build_ev_profile_mw(
             buses=buses,
             n_buses=n_buses,
             bus_score=bus_score,
+            navigation_voltage_model=navigation_voltage_model,
             rng=rng,
         )
 
     # trip-chain + SOC model
     bus_ids = np.asarray(buses, dtype=int)
     bus_ids_key = tuple(int(x) for x in bus_ids.tolist())
-    n_nodes = int(cfg.mobility.mapping.n_nodes)
+    n_zones = int(cfg.mobility.trip_chain.n_zones)
 
     # mapping is treated as system data: deterministic w.r.t cfg.seed (not per-scenario RNG)
     if cfg.mobility.mapping.policy == "from_pairs":
         mapping = _cached_mapping_from_pairs(
-            n_nodes=n_nodes,
+            n_nodes=n_zones,
             bus_ids_key=bus_ids_key,
             node_bus_pairs_key=tuple((int(a), int(b)) for a, b in cfg.mobility.mapping.node_bus_pairs),
         )
     else:
         mapping = _cached_random_onehot_mapping(
-            n_nodes=n_nodes,
+            n_nodes=n_zones,
             bus_ids_key=bus_ids_key,
             seed=int(cfg.seed),
         )
 
     tc_cfg = cfg.mobility.trip_chain
     trip_params = TripChainSamplingParams(
-        n_zones=n_nodes,
-        day_minutes=int(cfg.time.step_minutes) * int(cfg.time.n_steps),
+        n_zones=n_zones,
+        day_minutes=int(cfg.time.day_minutes),
         other_stops_mean=float(tc_cfg.other_stops_mean),
         first_departure_mean=tc_cfg.first_departure_mean,
         first_departure_std_minutes=int(tc_cfg.first_departure_std_minutes),
@@ -150,6 +156,7 @@ def build_ev_profile_mw(
         n_vehicles=n_vehicles,
         step_minutes=int(cfg.time.step_minutes),
         n_steps=int(cfg.time.n_steps),
+        n_days=int(cfg.time.n_days),
         mapping=mapping,
         trip_params=trip_params,
         soc_params=soc_params,
@@ -158,14 +165,20 @@ def build_ev_profile_mw(
         navigation_candidate_k=int(cfg.strategy.navigation.candidate_k),
         navigation_distance_limit_m=cfg.strategy.navigation.distance_limit_m,
         navigation_distance_beta=float(cfg.strategy.navigation.distance_beta),
+        navigation_dynamic_safety_buffer_pu=float(cfg.strategy.navigation.dynamic_safety_buffer_pu),
+        navigation_dynamic_voltage_penalty_window_pu=float(
+            cfg.strategy.navigation.dynamic_voltage_penalty_window_pu
+        ),
+        navigation_path_congestion_weight=float(cfg.strategy.navigation.path_congestion_weight),
         bus_distance_m=bus_distance_m,
         candidate_bus_idx=candidate_bus_idx,
         bus_score=bus_score,
+        navigation_voltage_model=navigation_voltage_model,
         ordered_random_delay=cfg.strategy.ordered.random_delay,
         dynamic_bus_score=cfg.strategy.navigation.dynamic_scoring,
         rng=rng,
     )
     # safety: align to expected columns
-    if prof.shape != (int(cfg.time.n_steps), int(n_buses)):
+    if prof.shape != (int(cfg.time.total_steps), int(n_buses)):
         raise ValueError("Profile shape mismatch.")
     return prof

@@ -70,6 +70,7 @@ class ComparisonResult(BaseModel):
     deterministic_n_star: int
     deterministic_weakest_bus: int
     deterministic_weakest_voltage: float
+    sensitivity_n_star_representative: int
     sensitivity_n_star_uniform: int
     sensitivity_n_star_weakest: int
 
@@ -136,6 +137,7 @@ def run_hosting_capacity(
             risk_tolerance=cfg.hosting_capacity.risk_tolerance,
             max_iter=cfg.hosting_capacity.binary_search.max_iter,
             min_step=cfg.hosting_capacity.binary_search.min_step,
+            initial_hi=cfg.hosting_capacity.binary_search.initial_hi,
         )
 
         detail = [
@@ -194,7 +196,7 @@ def run_method_comparison(
     if progress is not None:
         progress(f"[mc] done: N*={mc_result.n_star}")
 
-    # 2. Deterministic extreme scenario
+    # 2. Deterministic representative template
     if progress is not None:
         progress("[deterministic] running")
     det_result = run_deterministic_hc(net_det, cfg)
@@ -208,7 +210,9 @@ def run_method_comparison(
     if progress is not None:
         progress(
             "[sensitivity] done: "
-            f"uniform={sens_result.n_star_uniform}, weakest={sens_result.n_star_weakest}"
+            f"representative={sens_result.n_star_representative}, "
+            f"uniform={sens_result.n_star_uniform}, "
+            f"weakest={sens_result.n_star_weakest}"
         )
 
     return ComparisonResult(
@@ -216,6 +220,7 @@ def run_method_comparison(
         deterministic_n_star=det_result.n_star,
         deterministic_weakest_bus=det_result.weakest_bus_id,
         deterministic_weakest_voltage=det_result.weakest_bus_voltage_pu,
+        sensitivity_n_star_representative=sens_result.n_star_representative,
         sensitivity_n_star_uniform=sens_result.n_star_uniform,
         sensitivity_n_star_weakest=sens_result.n_star_weakest,
     )

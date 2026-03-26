@@ -62,6 +62,63 @@ def _optional_percent_array(frame: Any) -> np.ndarray:
     return frame["loading_percent"].to_numpy(dtype=float)
 
 
+def _node_supply_loading_percent(net: Any) -> np.ndarray:
+    """
+    Fallback transformer loading proxy for MV-only IEEE33 variants.
+
+    Some literature-backed cases in this project carry node transformer capacities as bus
+    metadata rather than explicit pandapower trafo elements. When no physical trafo table
+    exists, aggregate solved load demand at each bus and evaluate it against the annotated
+    node capacity.
+    """
+    if (
+        not hasattr(net, "bus")
+        or "ev_tripchain_node_trafo_sn_mva" not in net.bus.columns
+    ):
+        return np.zeros(0, dtype=float)
+    if not hasattr(net, "load") or not hasattr(net, "res_load"):
+        return np.zeros(0, dtype=float)
+    if len(net.load) == 0 or len(net.res_load) == 0:
+        return np.zeros(0, dtype=float)
+    if "p_mw" not in net.res_load.columns or "q_mvar" not in net.res_load.columns:
+        return np.zeros(0, dtype=float)
+
+    bus_ids = net.bus.index.to_numpy(dtype=int)
+    if bus_ids.size == 0:
+        return np.zeros(0, dtype=float)
+    bus_pos = {int(bus): pos for pos, bus in enumerate(bus_ids.tolist())}
+    p_by_bus = np.zeros(bus_ids.size, dtype=float)
+    q_by_bus = np.zeros(bus_ids.size, dtype=float)
+
+    load_idx = net.load.index.intersection(net.res_load.index)
+    if load_idx.size == 0:
+        return np.zeros(0, dtype=float)
+
+    load_bus = net.load.loc[load_idx, "bus"].to_numpy(dtype=int)
+    p_load = np.abs(net.res_load.loc[load_idx, "p_mw"].to_numpy(dtype=float))
+    q_load = np.abs(net.res_load.loc[load_idx, "q_mvar"].to_numpy(dtype=float))
+
+    for bus, p_mw, q_mvar in zip(
+        load_bus.tolist(),
+        p_load.tolist(),
+        q_load.tolist(),
+        strict=False,
+    ):
+        pos = bus_pos.get(int(bus))
+        if pos is None:
+            continue
+        p_by_bus[pos] += float(p_mw)
+        q_by_bus[pos] += float(q_mvar)
+
+    rated = net.bus["ev_tripchain_node_trafo_sn_mva"].to_numpy(dtype=float)
+    valid = np.isfinite(rated) & (rated > 0.0)
+    if not valid.any():
+        return np.zeros(0, dtype=float)
+
+    apparent = np.sqrt(np.square(p_by_bus[valid]) + np.square(q_by_bus[valid]))
+    return apparent / rated[valid] * 100.0
+
+
 def _optional_loss_sum(frame: Any) -> float:
     if frame is None or len(frame) == 0 or "pl_mw" not in frame.columns:
         return 0.0
@@ -83,6 +140,8 @@ def evaluate_constraints(
 
     line_loading = _optional_percent_array(getattr(net, "res_line", None))
     trafo_loading = _optional_percent_array(getattr(net, "res_trafo", None))
+    if trafo_loading.size == 0:
+        trafo_loading = _node_supply_loading_percent(net)
 
     line_gap = np.clip(line_loading - float(line_max), 0.0, None)
     trafo_gap = np.clip(trafo_loading - float(trafo_max), 0.0, None)

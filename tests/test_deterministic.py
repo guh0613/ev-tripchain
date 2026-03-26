@@ -1,4 +1,4 @@
-"""Tests for deterministic extreme scenario hosting capacity method."""
+"""Tests for deterministic representative-profile hosting capacity method."""
 
 from ev_tripchain.config import ProjectConfig
 from ev_tripchain.grid.cases import load_case
@@ -19,10 +19,11 @@ def test_deterministic_hc_simple_case() -> None:
     assert result.n_star >= 0
     assert result.weakest_bus_voltage_pu > 0.9
     assert len(result.risk_curve) > 0
+    assert {float(r) for _, r in result.risk_curve}.issubset({0.0, 1.0})
 
 
 def test_deterministic_hc_gives_conservative_bound() -> None:
-    """Deterministic N* should be <= MC N* (more conservative)."""
+    """Deterministic N* should stay within the configured search range."""
     cfg = ProjectConfig(
         seed=42,
         case={"name": "simple", "load_scale": 0.3},
@@ -36,8 +37,6 @@ def test_deterministic_hc_gives_conservative_bound() -> None:
     net_det = load_case(cfg.case.name, load_scale=cfg.case.load_scale)
     det_result = run_deterministic_hc(net_det, cfg)
 
-    # Deterministic puts all EVs at weakest bus => very conservative
-    # N*_det should be small but non-negative
     assert det_result.n_star >= 0
     assert det_result.n_star <= cfg.hosting_capacity.n_max
 

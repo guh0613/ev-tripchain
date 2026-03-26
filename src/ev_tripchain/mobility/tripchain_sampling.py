@@ -58,10 +58,27 @@ class TripChainSamplingParams:
     distance_km_std: float = 4.0
 
 
+def sample_anchor_zones(
+    params: TripChainSamplingParams,
+    *,
+    rng: np.random.Generator,
+) -> tuple[int, int]:
+    if params.n_zones < 2:
+        raise ValueError("n_zones must be >= 2.")
+
+    home_zone = int(rng.integers(0, params.n_zones))
+    work_zone = int(rng.integers(0, params.n_zones - 1))
+    if work_zone >= home_zone:
+        work_zone += 1
+    return home_zone, work_zone
+
+
 def sample_daily_trip_chain(
     params: TripChainSamplingParams,
     *,
     rng: np.random.Generator,
+    home_zone: int | None = None,
+    work_zone: int | None = None,
 ) -> TripChain:
     """
     Sample a simple daily trip chain: home -> work -> other* -> home.
@@ -70,12 +87,33 @@ def sample_daily_trip_chain(
     """
     if params.n_zones < 2:
         raise ValueError("n_zones must be >= 2.")
+    if home_zone is None and work_zone is None:
+        home_zone, work_zone = sample_anchor_zones(params, rng=rng)
+    elif home_zone is None:
+        work_zone = int(work_zone)
+        if not 0 <= work_zone < params.n_zones:
+            raise ValueError("work_zone out of bounds.")
+        home_zone = int(rng.integers(0, params.n_zones - 1))
+        if home_zone >= work_zone:
+            home_zone += 1
+    elif work_zone is None:
+        home_zone = int(home_zone)
+        if not 0 <= home_zone < params.n_zones:
+            raise ValueError("home_zone out of bounds.")
+        work_zone = int(rng.integers(0, params.n_zones - 1))
+        if work_zone >= home_zone:
+            work_zone += 1
+
+    if not 0 <= int(home_zone) < params.n_zones:
+        raise ValueError("home_zone out of bounds.")
+    if not 0 <= int(work_zone) < params.n_zones:
+        raise ValueError("work_zone out of bounds.")
+    if int(home_zone) == int(work_zone):
+        raise ValueError("home_zone and work_zone must differ.")
 
     t_end = int(params.day_minutes)
-    home_zone = int(rng.integers(0, params.n_zones))
-    work_zone = int(rng.integers(0, params.n_zones - 1))
-    if work_zone >= home_zone:
-        work_zone += 1
+    home_zone = int(home_zone)
+    work_zone = int(work_zone)
 
     # home stop (start of day)
     dep_home = _trunc_normal_int(

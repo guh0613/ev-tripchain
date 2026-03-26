@@ -47,3 +47,25 @@ def test_binary_search_max_n_returns_n_max_when_all_safe() -> None:
 
     assert n_star == 12
     assert curve == [(0, 0.01), (12, 0.01)]
+
+
+def test_binary_search_max_n_uses_small_initial_bracket_before_n_max() -> None:
+    calls: list[int] = []
+
+    def risk(n: int) -> float:
+        calls.append(n)
+        return 1.0 if n >= 90 else 0.0
+
+    n_star, curve = binary_search_max_n(
+        risk,
+        n_max=3000,
+        risk_tolerance=0.05,
+        max_iter=20,
+        min_step=1,
+        initial_hi=64,
+    )
+
+    assert n_star == 89
+    assert 3000 not in calls
+    assert calls[:3] == [0, 64, 128]
+    assert curve

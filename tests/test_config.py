@@ -1,7 +1,9 @@
 from pathlib import Path
 
-from ev_tripchain.config import ProjectConfig
-from ev_tripchain.config import load_config
+import pytest
+from pydantic import ValidationError
+
+from ev_tripchain.config import ProjectConfig, load_config
 
 
 def test_load_config_minimal(tmp_path: Path) -> None:
@@ -10,12 +12,14 @@ def test_load_config_minimal(tmp_path: Path) -> None:
     cfg = load_config(p)
     assert cfg.seed == 1
     assert cfg.time.n_steps > 0
+    assert cfg.time.total_steps == cfg.time.n_steps * cfg.time.n_days
 
 
 def test_default_risk_metric_matches_report_definition() -> None:
     cfg = ProjectConfig()
     assert cfg.hosting_capacity.risk_metric == "p_hat"
     assert cfg.hosting_capacity.parallel_workers == 1
+    assert cfg.hosting_capacity.binary_search.initial_hi == 128
 
 
 def test_repo_configs_keep_p_hat_for_hosting_capacity_decision() -> None:
@@ -24,6 +28,7 @@ def test_repo_configs_keep_p_hat_for_hosting_capacity_decision() -> None:
         cfg = load_config(repo_root / rel)
         assert cfg.hosting_capacity.risk_metric == "p_hat"
         assert cfg.hosting_capacity.parallel_workers == 0
+        assert cfg.hosting_capacity.binary_search.initial_hi == 128
 
 
 def test_parallel_workers_auto_resolution_is_positive() -> None:
@@ -46,3 +51,14 @@ def test_constraints_support_legacy_flat_shape() -> None:
     assert cfg.constraints.hard.line_loading_max_percent == 95.0
     assert cfg.constraints.hard.trafo_loading_max_percent == 90.0
     assert cfg.constraints.soft.nominal_voltage_pu == 1.01
+
+
+def test_tripchain_soc_requires_matching_zone_and_mapping_counts() -> None:
+    with pytest.raises(ValidationError, match="mobility.trip_chain.n_zones must match"):
+        ProjectConfig(
+            mobility={
+                "model": "tripchain_soc",
+                "trip_chain": {"n_zones": 7},
+                "mapping": {"n_nodes": 5},
+            }
+        )

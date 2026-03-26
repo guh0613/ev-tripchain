@@ -15,6 +15,68 @@ from matplotlib.figure import Figure
 from ev_tripchain.reporting.style import COLORS, METHOD_LABELS, STRATEGY_LABELS
 
 
+def _infer_time_axis_end(hours: np.ndarray, *, closed: bool = False) -> float:
+    arr = np.asarray(hours, dtype=float).reshape(-1)
+    if arr.size == 0:
+        return 24.0
+    if closed or arr.size == 1:
+        return float(arr[-1])
+    step = float(np.median(np.diff(arr)))
+    return float(arr[-1] + step)
+
+
+def _format_horizon_label(total_hours: float) -> str:
+    rounded = int(round(total_hours))
+    if np.isclose(total_hours, 24.0):
+        return "24小时"
+    if total_hours >= 24.0 and np.isclose(total_hours / 24.0, round(total_hours / 24.0)):
+        days = int(round(total_hours / 24.0))
+        return f"{days}天（{rounded}小时）"
+    return f"{rounded}小时"
+
+
+def _time_tick_step(total_hours: float) -> int:
+    if total_hours <= 24.0:
+        return 2
+    if total_hours <= 48.0:
+        return 4
+    return 6
+
+
+def _decorate_time_axis(ax: plt.Axes, total_hours: float, *, x0: float = 0.0) -> None:
+    tick_step = _time_tick_step(total_hours - x0)
+    ax.set_xlim(x0, total_hours)
+    ax.set_xticks(np.arange(x0, total_hours + 1e-9, tick_step))
+    ax.set_xlabel("时刻（小时）")
+    for boundary in np.arange(24.0, total_hours, 24.0):
+        if boundary > x0:
+            ax.axvline(boundary, color=COLORS["gray"], linestyle=":", linewidth=0.9, alpha=0.5)
+
+
+def _shade_ordered_windows(ax: plt.Axes, total_hours: float) -> None:
+    label_used = False
+    for day_start in np.arange(0.0, total_hours, 24.0):
+        left_start = day_start + 22.0
+        left_end = min(day_start + 24.0, total_hours)
+        if left_start < total_hours:
+            ax.axvspan(
+                left_start,
+                left_end,
+                alpha=0.08,
+                color=COLORS["primary"],
+                label="充电窗口" if not label_used else None,
+            )
+            label_used = True
+        right_end = min(day_start + 6.0, total_hours)
+        if day_start < right_end:
+            ax.axvspan(
+                day_start,
+                right_end,
+                alpha=0.08,
+                color=COLORS["primary"],
+            )
+
+
 # ──────────────────────────────────────────────────────────
 # Fig 1: Input distribution histograms
 # ──────────────────────────────────────────────────────────
@@ -50,14 +112,13 @@ def fig_soc_evolution(
     step_minutes: int = 15,
 ) -> Figure:
     fig, ax = plt.subplots(figsize=(10.5, 4.2))
+    total_hours = _infer_time_axis_end(hours, closed=True)
 
     ax.plot(hours, soc, color=COLORS["success"], linewidth=2.2)
-    ax.set_xlim(0, 24)
     ax.set_ylim(0, 1.0)
-    ax.set_xticks(np.arange(0, 25, 2))
-    ax.set_xlabel("时刻（小时）")
+    _decorate_time_axis(ax, total_hours)
     ax.set_ylabel("荷电状态（SOC）")
-    ax.set_title("单车24小时SOC演化曲线")
+    ax.set_title(f"单车SOC演化曲线（{_format_horizon_label(total_hours)}）")
 
     charging_steps = np.where(p_kw > 1e-9)[0]
     if charging_steps.size:
@@ -78,13 +139,12 @@ def fig_charging_load(
     n_vehicles: int,
 ) -> Figure:
     fig, ax = plt.subplots(figsize=(10.5, 4.2))
+    total_hours = _infer_time_axis_end(hours)
 
     ax.plot(hours, total_kw, color=COLORS["purple"], linewidth=2.2)
-    ax.set_xlim(0, 24)
-    ax.set_xticks(np.arange(0, 25, 2))
-    ax.set_xlabel("时刻（小时）")
+    _decorate_time_axis(ax, total_hours)
     ax.set_ylabel("总充电功率（kW）")
-    ax.set_title(f"无序充电总负荷曲线，N={n_vehicles}")
+    ax.set_title(f"无序充电总负荷曲线（{_format_horizon_label(total_hours)}，N={n_vehicles}）")
 
     return fig
 
@@ -137,17 +197,16 @@ def fig_bus_voltage_profile(
 ) -> Figure:
     """all_vm: shape (n_steps, n_buses)."""
     fig, ax = plt.subplots(figsize=(10.5, 5.0))
+    total_hours = _infer_time_axis_end(hours)
 
     for b in range(all_vm.shape[1]):
         ax.plot(hours, all_vm[:, b], linewidth=0.8, alpha=0.7)
 
     ax.axhline(y=vmin, color="red", linestyle="--", linewidth=1.2, label=f"$V_{{min}}$ = {vmin} p.u.")
     ax.axhline(y=vmax, color="red", linestyle="--", linewidth=1.2, label=f"$V_{{max}}$ = {vmax} p.u.")
-    ax.set_xlim(0, 24)
-    ax.set_xticks(np.arange(0, 25, 2))
-    ax.set_xlabel("时刻（小时）")
+    _decorate_time_axis(ax, total_hours)
     ax.set_ylabel("电压（p.u.）")
-    ax.set_title(f"各母线24小时电压剖面，N={n_vehicles}")
+    ax.set_title(f"各母线连续电压剖面（{_format_horizon_label(total_hours)}，N={n_vehicles}）")
     ax.legend(loc="lower left")
     ax.grid(True, alpha=0.3)
 
@@ -164,14 +223,13 @@ def fig_model_comparison(
     n_vehicles: int,
 ) -> Figure:
     fig, ax = plt.subplots(figsize=(10.5, 4.8))
+    total_hours = _infer_time_axis_end(hours)
 
     ax.plot(hours, total_sess_kw, color=COLORS["primary"], linewidth=2.2, label="会话式模型")
     ax.plot(hours, total_tc_kw, color=COLORS["secondary"], linewidth=2.2, label="出行链+SOC模型")
-    ax.set_xlim(0, 24)
-    ax.set_xticks(np.arange(0, 25, 2))
-    ax.set_xlabel("时刻（小时）")
+    _decorate_time_axis(ax, total_hours)
     ax.set_ylabel("总充电功率（kW）")
-    ax.set_title(f"两种充电负荷模型对比，N={n_vehicles}")
+    ax.set_title(f"两种充电负荷模型对比（{_format_horizon_label(total_hours)}，N={n_vehicles}）")
     ax.legend()
     ax.grid(True, alpha=0.3)
 
@@ -188,21 +246,53 @@ def fig_ordered_delay(
     p_with_delay: np.ndarray,
     n_vehicles: int,
     model_label: str = "会话模型",
+    summary: dict[str, dict[str, float]] | None = None,
 ) -> Figure:
-    fig, ax = plt.subplots(figsize=(8, 4))
+    total_hours = _infer_time_axis_end(hours)
+    fig, (ax_full, ax_zoom) = plt.subplots(
+        2,
+        1,
+        figsize=(10.5, 6.6),
+        gridspec_kw={"height_ratios": [2.1, 1.2]},
+    )
 
-    ax.plot(hours, p_uncontrolled, color=COLORS["gray"], linewidth=1.2, label="无序充电")
-    ax.plot(hours, p_no_delay, color=COLORS["ordered_no_delay"], linewidth=1.6, label="有序充电（无延迟）")
-    ax.plot(hours, p_with_delay, color=COLORS["ordered_delay"], linewidth=1.6, label="有序充电（随机延迟）")
-    ax.axvspan(22, 24, alpha=0.08, color="blue", label="充电窗口")
-    ax.axvspan(0, 6, alpha=0.08, color="blue")
-    ax.set_xlabel("时刻 (h)")
-    ax.set_ylabel("聚合充电功率 (kW)")
-    ax.set_title(f"有序充电随机延迟效果对比（{model_label}，{n_vehicles}辆EV）")
-    ax.set_xlim(0, 24)
-    ax.set_xticks(range(0, 25, 2))
-    ax.legend(loc="upper left", fontsize=9)
-    ax.grid(True, alpha=0.3)
+    for ax in (ax_full, ax_zoom):
+        ax.plot(hours, p_uncontrolled, color=COLORS["gray"], linewidth=1.2, label="无序充电")
+        ax.plot(hours, p_no_delay, color=COLORS["ordered_no_delay"], linewidth=1.6, label="有序充电（无延迟）")
+        ax.plot(hours, p_with_delay, color=COLORS["ordered_delay"], linewidth=1.8, label="有序充电（随机延迟）")
+        _shade_ordered_windows(ax, total_hours)
+        ax.set_ylabel("聚合充电功率 (kW)")
+        ax.grid(True, alpha=0.3)
+
+    _decorate_time_axis(ax_full, total_hours)
+    ax_full.set_title(
+        f"有序充电随机延迟效果对比（{model_label}，{_format_horizon_label(total_hours)}，{n_vehicles}辆EV）"
+    )
+    ax_full.legend(loc="upper left", fontsize=9, ncols=2)
+
+    zoom_start = max(0.0, min(18.0, total_hours))
+    zoom_end = min(total_hours, 30.0 if total_hours > 24.0 else 24.0)
+    _decorate_time_axis(ax_zoom, zoom_end, x0=zoom_start)
+    ax_zoom.set_title("跨午夜充电窗口细节")
+
+    if summary is not None:
+        ordered_no = summary.get("ordered_no_delay", {})
+        ordered_yes = summary.get("ordered_with_delay", {})
+        text = (
+            "窗口电量(kWh)\n"
+            f"无延迟: {ordered_no.get('overnight_energy_kwh', 0.0):.1f}\n"
+            f"随机延迟: {ordered_yes.get('overnight_energy_kwh', 0.0):.1f}"
+        )
+        ax_zoom.text(
+            0.985,
+            0.95,
+            text,
+            transform=ax_zoom.transAxes,
+            ha="right",
+            va="top",
+            fontsize=9,
+            bbox={"facecolor": "white", "alpha": 0.82, "edgecolor": COLORS["gray"]},
+        )
 
     return fig
 

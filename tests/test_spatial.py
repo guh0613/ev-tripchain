@@ -1,8 +1,10 @@
 import numpy as np
 
+from ev_tripchain.hosting_capacity.sensitivity import VoltageSensitivityModel
 from ev_tripchain.mobility.spatial import (
     build_spatial_distance_model,
     choose_spatial_target_bus,
+    compute_session_step_weights,
 )
 
 
@@ -110,3 +112,186 @@ def test_nearest_strategy_can_stay_on_current_bus() -> None:
         rng=rng,
     )
     assert nearest == 1
+
+
+def test_compute_session_step_weights_keeps_partial_step_overlap() -> None:
+    step_idx, step_weight = compute_session_step_weights(
+        start_minute=10,
+        end_minute=40,
+        step_minutes=15,
+        n_steps=4,
+    )
+
+    assert step_idx.tolist() == [0, 1, 2]
+    assert np.allclose(step_weight, np.array([5 / 15, 1.0, 10 / 15], dtype=float))
+
+
+def test_navigation_uses_temporal_overlap_to_avoid_loaded_candidate() -> None:
+    dist_m = np.array(
+        [
+            [0.0, 100.0, 120.0],
+            [100.0, 0.0, 60.0],
+            [120.0, 60.0, 0.0],
+        ],
+        dtype=float,
+    )
+    scheduled_load_mw = np.zeros((2, 3), dtype=float)
+    scheduled_load_mw[:, 1] = 0.05
+    rng = np.random.default_rng(7)
+
+    target = choose_spatial_target_bus(
+        src_bus_col=0,
+        strategy_name="navigation",
+        dist_m=dist_m,
+        candidate_bus_idx=np.array([1, 2], dtype=int),
+        navigation_candidate_k=2,
+        candidate_bus_score=np.ones(3, dtype=float),
+        session_step_idx=np.array([0, 1], dtype=int),
+        session_step_weight=np.array([1.0, 1.0], dtype=float),
+        scheduled_load_mw=scheduled_load_mw,
+        candidate_charge_power_mw=0.0072,
+        rng=rng,
+    )
+
+    assert target == 2
+
+
+def test_navigation_uses_voltage_headroom_to_filter_risky_candidate() -> None:
+    dist_m = np.array(
+        [
+            [0.0, 100.0, 120.0],
+            [100.0, 0.0, 60.0],
+            [120.0, 60.0, 0.0],
+        ],
+        dtype=float,
+    )
+    voltage_model = VoltageSensitivityModel(
+        base_voltage_pu=np.array([0.99, 0.953, 0.97], dtype=float),
+        sensitivity_pu_per_mw=np.array(
+            [
+                [-0.01, -0.01, -0.01],
+                [-0.01, -0.25, -0.02],
+                [-0.01, -0.02, -0.05],
+            ],
+            dtype=float,
+        ),
+        vmin_pu=0.95,
+        vmax_pu=1.05,
+    )
+    rng = np.random.default_rng(11)
+
+    target = choose_spatial_target_bus(
+        src_bus_col=0,
+        strategy_name="navigation",
+        dist_m=dist_m,
+        candidate_bus_idx=np.array([1, 2], dtype=int),
+        navigation_candidate_k=2,
+        candidate_bus_score=np.ones(3, dtype=float),
+        session_step_idx=np.array([0], dtype=int),
+        session_step_weight=np.array([1.0], dtype=float),
+        scheduled_load_mw=np.zeros((1, 3), dtype=float),
+        candidate_charge_power_mw=0.02,
+        voltage_model=voltage_model,
+        rng=rng,
+    )
+
+    assert target == 2
+
+
+def test_navigation_soft_voltage_barrier_keeps_near_limit_candidate_competitive() -> None:
+    dist_m = np.array(
+        [
+            [0.0, 250.0, 20.0],
+            [250.0, 0.0, 60.0],
+            [20.0, 60.0, 0.0],
+        ],
+        dtype=float,
+    )
+    voltage_model = VoltageSensitivityModel(
+        base_voltage_pu=np.array([0.99, 0.9534, 0.9527], dtype=float),
+        sensitivity_pu_per_mw=np.array(
+            [
+                [-0.01, -0.01, -0.01],
+                [-0.01, -0.06, -0.02],
+                [-0.01, -0.02, -0.04],
+            ],
+            dtype=float,
+        ),
+        vmin_pu=0.95,
+        vmax_pu=1.05,
+    )
+    rng = np.random.default_rng(19)
+
+    target = choose_spatial_target_bus(
+        src_bus_col=0,
+        strategy_name="navigation",
+        dist_m=dist_m,
+        candidate_bus_idx=np.array([1, 2], dtype=int),
+        navigation_candidate_k=2,
+        candidate_bus_score=np.ones(3, dtype=float),
+        session_step_idx=np.array([0], dtype=int),
+        session_step_weight=np.array([1.0], dtype=float),
+        scheduled_load_mw=np.zeros((1, 3), dtype=float),
+        candidate_charge_power_mw=0.02,
+        voltage_model=voltage_model,
+        dynamic_safety_buffer_pu=0.002,
+        dynamic_voltage_penalty_window_pu=0.006,
+        rng=rng,
+    )
+
+    assert target == 2
+
+
+def test_navigation_uses_upstream_path_congestion_to_avoid_shared_feeder() -> None:
+    dist_m = np.array(
+        [
+            [0.0, 80.0, 80.0],
+            [80.0, 0.0, 100.0],
+            [80.0, 100.0, 0.0],
+        ],
+        dtype=float,
+    )
+    voltage_model = VoltageSensitivityModel(
+        base_voltage_pu=np.array([0.99, 0.98, 0.98], dtype=float),
+        sensitivity_pu_per_mw=np.array(
+            [
+                [-0.01, -0.01, -0.01],
+                [-0.01, -0.02, -0.01],
+                [-0.01, -0.01, -0.02],
+            ],
+            dtype=float,
+        ),
+        vmin_pu=0.95,
+        vmax_pu=1.05,
+        path_incidence=np.array(
+            [
+                [0.0, 1.0, 0.0],
+                [0.0, 0.0, 1.0],
+            ],
+            dtype=float,
+        ),
+        line_capacity_mw=np.array([0.2, 0.2], dtype=float),
+        base_line_loading_percent=np.array([85.0, 20.0], dtype=float),
+        line_loading_limit_percent=100.0,
+    )
+    scheduled_load_mw = np.zeros((1, 3), dtype=float)
+    scheduled_load_mw[0, 1] = 0.04
+    rng = np.random.default_rng(23)
+
+    target = choose_spatial_target_bus(
+        src_bus_col=0,
+        strategy_name="navigation",
+        dist_m=dist_m,
+        candidate_bus_idx=np.array([1, 2], dtype=int),
+        navigation_candidate_k=2,
+        candidate_bus_score=np.ones(3, dtype=float),
+        session_step_idx=np.array([0], dtype=int),
+        session_step_weight=np.array([1.0], dtype=float),
+        scheduled_load_mw=scheduled_load_mw,
+        candidate_charge_power_mw=0.02,
+        voltage_model=voltage_model,
+        path_congestion_weight=1.0,
+        rng=rng,
+    )
+
+    assert target == 2

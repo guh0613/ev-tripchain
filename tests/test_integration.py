@@ -4,6 +4,7 @@ import numpy as np
 
 from ev_tripchain.config import ProjectConfig, load_config
 from ev_tripchain.grid.cases import load_case
+from ev_tripchain.grid.constraints import evaluate_constraints
 from ev_tripchain.grid.powerflow import run_powerflow
 from ev_tripchain.hosting_capacity.evaluate import (
     _ensure_ev_load_elements,
@@ -183,7 +184,7 @@ strategy:
 
     rng = np.random.default_rng(42)
     profile = build_ev_profile_mw(cfg=cfg, n_vehicles=50, buses=buses, n_buses=n_buses, rng=rng)
-    assert profile.shape == (cfg.time.n_steps, n_buses)
+    assert profile.shape == (cfg.time.total_steps, n_buses)
     assert profile.sum() > 0
 
 
@@ -222,7 +223,7 @@ mobility:
 
     rng = np.random.default_rng(42)
     profile = build_ev_profile_mw(cfg=cfg, n_vehicles=100, buses=buses, n_buses=n_buses, rng=rng)
-    assert profile.shape == (cfg.time.n_steps, n_buses)
+    assert profile.shape == (cfg.time.total_steps, n_buses)
     assert profile.sum() > 0
 
 
@@ -257,6 +258,35 @@ def test_ieee33_line_loading_percent_is_meaningful() -> None:
 
     assert (net.line.max_i_ka > 0).all()
     assert float(net.res_line.loading_percent.max()) > 1.0
+
+
+def test_improved_ieee33_expands_voltage_headroom_vs_raw_case() -> None:
+    raw = load_case("case33bw", load_scale=0.60)
+    improved = load_case("ieee33", load_scale=0.60)
+
+    run_powerflow(raw)
+    run_powerflow(improved)
+
+    assert int(raw.line["in_service"].sum()) < int(improved.line["in_service"].sum())
+    assert float(raw.res_bus.vm_pu.min()) < 0.95
+    assert float(improved.res_bus.vm_pu.min()) > 0.95
+
+
+def test_improved_ieee33_exposes_node_transformer_loading_signal() -> None:
+    net = load_case("ieee33", load_scale=1.0)
+    run_powerflow(net)
+
+    assessment = evaluate_constraints(
+        net,
+        vmin=0.95,
+        vmax=1.05,
+        line_max=100.0,
+        trafo_max=100.0,
+        nominal_voltage_pu=1.0,
+    )
+
+    assert assessment.soft.trafo_loading_peak_percent > 0.0
+    assert assessment.hard.trafo_overload_count == 0
 
 
 def test_synthetic_nearest_keeps_sessions_on_current_bus_when_available(tmp_path: Path) -> None:
@@ -432,5 +462,5 @@ mobility:
 
     rng = np.random.default_rng(123)
     p = build_ev_profile_mw(cfg=cfg, n_vehicles=40, buses=buses, n_buses=n_buses, rng=rng)
-    assert p.shape == (cfg.time.n_steps, n_buses)
+    assert p.shape == (cfg.time.total_steps, n_buses)
     assert np.isfinite(p).all()

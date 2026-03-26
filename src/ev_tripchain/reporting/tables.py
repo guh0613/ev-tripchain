@@ -88,6 +88,29 @@ def export_method_comparison(
     return _write_csv(path, ["method", "N*", "time_s"], rows)
 
 
+def export_ordered_delay(
+    path: Path,
+    hours: np.ndarray,
+    p_uncontrolled: np.ndarray,
+    p_no_delay: np.ndarray,
+    p_with_delay: np.ndarray,
+) -> Path:
+    rows = [
+        [
+            f"{float(h):.2f}",
+            f"{float(pu):.4f}",
+            f"{float(pn):.4f}",
+            f"{float(py):.4f}",
+        ]
+        for h, pu, pn, py in zip(hours, p_uncontrolled, p_no_delay, p_with_delay, strict=True)
+    ]
+    return _write_csv(
+        path,
+        ["hour", "uncontrolled_kw", "ordered_no_delay_kw", "ordered_with_delay_kw"],
+        rows,
+    )
+
+
 def export_bottleneck(
     path: Path,
     buses: list[dict[str, Any]],

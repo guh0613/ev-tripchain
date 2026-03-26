@@ -17,6 +17,7 @@ def test_sensitivity_hc_simple_case() -> None:
     net = load_case(cfg.case.name, load_scale=cfg.case.load_scale)
     result = run_sensitivity_hc(net, cfg)
 
+    assert result.n_star_representative >= 0
     assert result.n_star_uniform >= 0
     assert result.n_star_weakest >= 0
     # Uniform allocation should allow more EVs than worst-bus allocation
@@ -26,6 +27,7 @@ def test_sensitivity_hc_simple_case() -> None:
     # Base voltages should be reasonable
     assert np.all(result.base_voltage > 0.9)
     assert np.all(result.voltage_margin >= 0)
+    assert np.isclose(result.representative_bus_share.sum(), 1.0)
 
 
 def test_sensitivity_hc_ieee33() -> None:
@@ -38,9 +40,11 @@ def test_sensitivity_hc_ieee33() -> None:
     net = load_case(cfg.case.name, load_scale=cfg.case.load_scale)
     result = run_sensitivity_hc(net, cfg)
 
+    assert result.n_star_representative >= 0
     assert result.n_star_uniform >= 0
     assert result.n_star_weakest >= 0
     assert result.sensitivity_diagonal.shape[0] == 32  # 33 buses minus ext_grid
+    assert result.representative_bus_share.shape[0] == 32
     # Weakest bus should have smallest margin
     weakest_idx = int(np.argmin(result.voltage_margin))
     assert result.voltage_margin[weakest_idx] >= 0

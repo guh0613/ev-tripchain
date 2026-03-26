@@ -14,13 +14,35 @@ class CaseConfig(BaseModel):
 
 
 class TimeConfig(BaseModel):
-    step_minutes: int = 15
-    n_steps: int = 96
+    step_minutes: int = Field(default=15, gt=0)
+    n_steps: int = Field(default=96, gt=0)
+    n_days: int = Field(
+        default=2,
+        gt=0,
+        description="Continuous simulation days per Monte Carlo scenario.",
+    )
+
+    @property
+    def day_minutes(self) -> int:
+        return int(self.step_minutes) * int(self.n_steps)
+
+    @property
+    def total_steps(self) -> int:
+        return int(self.n_steps) * int(self.n_days)
+
+    @property
+    def total_minutes(self) -> int:
+        return int(self.day_minutes) * int(self.n_days)
 
 
 class BinarySearchConfig(BaseModel):
     max_iter: int = 16
     min_step: int = 1
+    initial_hi: int = Field(
+        default=128,
+        gt=0,
+        description="Initial upper bracket for adaptive exponential search before binary refinement.",
+    )
 
 
 class HostingCapacityConfig(BaseModel):
@@ -153,6 +175,28 @@ class NavigationStrategyConfig(BaseModel):
         default=True,
         description="Update bus scores based on accumulated load to achieve spatial dispersion.",
     )
+    dynamic_safety_buffer_pu: float = Field(
+        default=0.002,
+        ge=0.0,
+        description="Preferred minimum voltage headroom used by dynamic navigation scoring.",
+    )
+    dynamic_voltage_penalty_window_pu: float = Field(
+        default=0.006,
+        gt=0.0,
+        description=(
+            "Soft-penalty window for dynamic voltage scoring. "
+            "Larger values make the voltage factor less brittle near the limit."
+        ),
+    )
+    path_congestion_weight: float = Field(
+        default=0.35,
+        ge=0.0,
+        le=1.0,
+        description=(
+            "Weight of upstream-path congestion in navigation scoring. "
+            "0 disables the feeder-sharing penalty."
+        ),
+    )
 
 
 class StrategyConfig(BaseModel):
@@ -216,6 +260,20 @@ class ProjectConfig(BaseModel):
     ev: EVConfig = Field(default_factory=EVConfig)
     strategy: StrategyConfig = Field(default_factory=StrategyConfig)
     mobility: MobilityConfig = Field(default_factory=MobilityConfig)
+
+    @model_validator(mode="after")
+    def _validate_tripchain_mapping_shape(self) -> ProjectConfig:
+        if self.mobility.model != "tripchain_soc":
+            return self
+
+        n_zones = int(self.mobility.trip_chain.n_zones)
+        n_nodes = int(self.mobility.mapping.n_nodes)
+        if n_zones != n_nodes:
+            raise ValueError(
+                "mobility.trip_chain.n_zones must match mobility.mapping.n_nodes "
+                f"for tripchain_soc (got {n_zones} vs {n_nodes})."
+            )
+        return self
 
 
 def load_config(path: Path) -> ProjectConfig:

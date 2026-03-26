@@ -1,12 +1,18 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from ev_tripchain.config import ProjectConfig
 from ev_tripchain.mobility.spatial import (
     build_spatial_distance_model,
     choose_spatial_target_bus,
+    compute_session_step_weights,
 )
+
+if TYPE_CHECKING:
+    from ev_tripchain.hosting_capacity.sensitivity import VoltageSensitivityModel
 
 
 def _parse_hhmm_to_minutes(hhmm: str) -> int:
@@ -86,6 +92,7 @@ def build_ev_profile_mw(
     buses: np.ndarray,
     n_buses: int,
     bus_score: np.ndarray | None = None,
+    navigation_voltage_model: VoltageSensitivityModel | None = None,
     rng: np.random.Generator,
 ) -> np.ndarray:
     """
@@ -94,8 +101,9 @@ def build_ev_profile_mw(
     Returns array of shape (T, n_buses) in MW, aligned with `buses` ordering.
     """
     step = cfg.time.step_minutes
-    t_steps = cfg.time.n_steps
-    minutes_per_day = step * t_steps
+    n_days = int(cfg.time.n_days)
+    t_steps = int(cfg.time.total_steps)
+    minutes_per_day = int(cfg.time.day_minutes)
 
     if n_vehicles <= 0:
         return np.zeros((t_steps, n_buses), dtype=float)
@@ -114,48 +122,75 @@ def build_ev_profile_mw(
         return prof
 
     for _ in range(int(n_vehicles)):
-        n_sessions = int(rng.poisson(lam))
-        for _ in range(n_sessions):
-            home_bus_idx = int(rng.integers(0, n_buses))
-            start_min = int(_sample_start_minutes(cfg, size=1, rng=rng)[0])
-            dur_min = int(
-                np.clip(
-                    round(float(rng.normal(cfg.ev.duration_minutes_mean, cfg.ev.duration_minutes_std))),
-                    step,
-                    minutes_per_day,
+        for day_idx in range(n_days):
+            n_sessions = int(rng.poisson(lam))
+            for _ in range(n_sessions):
+                home_bus_idx = int(rng.integers(0, n_buses))
+                start_min = int(_sample_start_minutes(cfg, size=1, rng=rng)[0])
+                dur_min = int(
+                    np.clip(
+                        round(float(rng.normal(cfg.ev.duration_minutes_mean, cfg.ev.duration_minutes_std))),
+                        step,
+                        minutes_per_day,
+                    )
                 )
-            )
 
-            if cfg.strategy.name == "ordered":
-                ws = _parse_hhmm_to_minutes(cfg.strategy.ordered.window_start)
-                we = _parse_hhmm_to_minutes(cfg.strategy.ordered.window_end)
-                start_min = int(
-                    _apply_ordered_window(
-                        np.array([start_min], dtype=int),
-                        window_start=ws,
-                        window_end=we,
-                        random_delay=cfg.strategy.ordered.random_delay,
+                if cfg.strategy.name == "ordered":
+                    ws = _parse_hhmm_to_minutes(cfg.strategy.ordered.window_start)
+                    we = _parse_hhmm_to_minutes(cfg.strategy.ordered.window_end)
+                    start_min = int(
+                        _apply_ordered_window(
+                            np.array([start_min], dtype=int),
+                            window_start=ws,
+                            window_end=we,
+                            random_delay=cfg.strategy.ordered.random_delay,
+                            rng=rng,
+                        )[0]
+                    )
+
+                target_bus_idx = home_bus_idx
+                start_abs_min = day_idx * minutes_per_day + start_min
+                end_abs_min = min(start_abs_min + dur_min, minutes_per_day * n_days)
+                session_step_idx, session_step_weight = compute_session_step_weights(
+                    start_minute=start_abs_min,
+                    end_minute=end_abs_min,
+                    step_minutes=int(step),
+                    n_steps=t_steps,
+                )
+                if spatial_model is not None:
+                    dynamic_context_enabled = (
+                        cfg.strategy.name == "navigation"
+                        and cfg.strategy.navigation.dynamic_scoring
+                        and session_step_idx.size > 0
+                    )
+                    target_bus_idx = choose_spatial_target_bus(
+                        src_bus_col=home_bus_idx,
+                        strategy_name=cfg.strategy.name,
+                        dist_m=spatial_model.dist_m,
+                        candidate_bus_idx=spatial_model.candidate_bus_idx,
+                        navigation_candidate_k=int(cfg.strategy.navigation.candidate_k),
+                        navigation_distance_limit_m=cfg.strategy.navigation.distance_limit_m,
+                        navigation_distance_beta=float(cfg.strategy.navigation.distance_beta),
+                        candidate_bus_score=bus_score,
+                        session_step_idx=session_step_idx if dynamic_context_enabled else None,
+                        session_step_weight=session_step_weight if dynamic_context_enabled else None,
+                        scheduled_load_mw=prof if dynamic_context_enabled else None,
+                        candidate_charge_power_mw=p_mw if dynamic_context_enabled else None,
+                        voltage_model=navigation_voltage_model if dynamic_context_enabled else None,
+                        dynamic_safety_buffer_pu=float(
+                            cfg.strategy.navigation.dynamic_safety_buffer_pu
+                        ),
+                        dynamic_voltage_penalty_window_pu=float(
+                            cfg.strategy.navigation.dynamic_voltage_penalty_window_pu
+                        ),
+                        path_congestion_weight=float(
+                            cfg.strategy.navigation.path_congestion_weight
+                        ),
                         rng=rng,
-                    )[0]
-                )
+                    )
 
-            target_bus_idx = home_bus_idx
-            if spatial_model is not None:
-                target_bus_idx = choose_spatial_target_bus(
-                    src_bus_col=home_bus_idx,
-                    strategy_name=cfg.strategy.name,
-                    dist_m=spatial_model.dist_m,
-                    candidate_bus_idx=spatial_model.candidate_bus_idx,
-                    navigation_candidate_k=int(cfg.strategy.navigation.candidate_k),
-                    navigation_distance_limit_m=cfg.strategy.navigation.distance_limit_m,
-                    navigation_distance_beta=float(cfg.strategy.navigation.distance_beta),
-                    candidate_bus_score=bus_score,
-                    rng=rng,
-                )
-
-            start_step = int(start_min // step)
-            dur_steps = int(max(1, (dur_min + step - 1) // step))
-            for tt in range(start_step, min(start_step + dur_steps, t_steps)):
-                prof[tt, target_bus_idx] += p_mw
+                if session_step_idx.size == 0:
+                    continue
+                prof[session_step_idx, target_bus_idx] += session_step_weight * p_mw
 
     return prof

@@ -22,6 +22,7 @@ COLORS = {
     "navigation_dynamic": "#22c55e",
     # Method-specific
     "deterministic": "#dc2626",
+    "sensitivity_representative": "#f59e0b",
     "sensitivity_weakest": "#f97316",
     "sensitivity_uniform": "#eab308",
     "monte_carlo": "#22c55e",
@@ -37,7 +38,8 @@ STRATEGY_LABELS = {
 }
 
 METHOD_LABELS = {
-    "deterministic": "确定性法\n（极端场景）",
+    "deterministic": "确定性法\n（典型模板）",
+    "sensitivity_representative": "灵敏度法\n（典型模板）",
     "sensitivity_weakest": "灵敏度法\n（最薄弱母线）",
     "sensitivity_uniform": "灵敏度法\n（均匀分配）",
     "monte_carlo": "蒙特卡洛法",
