@@ -23,22 +23,36 @@ CONFIG_OPTION = typer.Option(
 OUT_OPTION = typer.Option(None, "--out", "-o", help="Write results JSON to this file")
 
 
+def _progress(message: str) -> None:
+    print(message, file=sys.stderr, flush=True)
+
+
+def _emit_payload(payload: dict, out: Path | None) -> None:
+    rendered = json.dumps(payload, ensure_ascii=False, indent=2)
+    print(rendered)
+    if out is None:
+        return
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(rendered + "\n", encoding="utf-8")
+
+
 def _run(config: Path, out: Path | None) -> None:
     cfg = load_config(config)
-    progress = lambda msg: print(msg, file=sys.stderr, flush=True)
-    result = run_hosting_capacity(cfg, progress=progress, progress_label="mc")
-
-    payload = result.model_dump()
-    print(json.dumps(payload, ensure_ascii=False, indent=2))
-    if out is not None:
-        out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    result = run_hosting_capacity(cfg, progress=_progress, progress_label="mc")
+    _emit_payload(result.model_dump(), out)
 
 
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
-    config: Path | None = typer.Option(None, "--config", "-c", exists=True, dir_okay=False, readable=True),
+    config: Path | None = typer.Option(
+        None,
+        "--config",
+        "-c",
+        exists=True,
+        dir_okay=False,
+        readable=True,
+    ),
     out: Path | None = OUT_OPTION,
 ) -> None:
     """Run probabilistic hosting-capacity assessment."""
@@ -66,24 +80,37 @@ def compare(
 ) -> None:
     """Run all three HC methods (MC, deterministic, sensitivity) and compare."""
     cfg = load_config(config)
-    progress = lambda msg: print(msg, file=sys.stderr, flush=True)
-    result = run_method_comparison(cfg, progress=progress)
-
-    payload = result.model_dump()
-    print(json.dumps(payload, ensure_ascii=False, indent=2))
-    if out is not None:
-        out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    result = run_method_comparison(cfg, progress=_progress)
+    _emit_payload(result.model_dump(), out)
 
 
 @app.command()
 def report(
     config: Path = CONFIG_OPTION,
-    out: Path = typer.Option(Path("output"), "--out", "-o", help="Output directory for figures/tables/data"),
-    session_config: Path | None = typer.Option(None, "--session-config", "-s", help="Session model config (default: configs/example.yaml)"),
-    only: str | None = typer.Option(None, "--only", help="Comma-separated figure IDs to generate (e.g. '1,4,8')"),
+    out: Path = typer.Option(
+        Path("output"),
+        "--out",
+        "-o",
+        help="Output directory for figures/tables/data",
+    ),
+    session_config: Path | None = typer.Option(
+        None,
+        "--session-config",
+        "-s",
+        help="Session model config (default: configs/example.yaml)",
+    ),
+    only: str | None = typer.Option(
+        None,
+        "--only",
+        help="Comma-separated figure IDs to generate (e.g. '1,4,8')",
+    ),
     fmt: str = typer.Option("png", "--fmt", "-f", help="Image format: png, pdf, svg"),
-    list_figures: bool = typer.Option(False, "--list", "-l", help="List available figures and exit"),
+    list_figures: bool = typer.Option(
+        False,
+        "--list",
+        "-l",
+        help="List available figures and exit",
+    ),
 ) -> None:
     """Generate thesis figures, tables, and data exports."""
     if list_figures:

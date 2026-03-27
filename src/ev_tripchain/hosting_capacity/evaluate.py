@@ -11,11 +11,16 @@ from ev_tripchain.config import ProjectConfig
 from ev_tripchain.grid.cases import load_case
 from ev_tripchain.grid.constraints import ConstraintEvaluation, evaluate_constraints
 from ev_tripchain.grid.powerflow import run_powerflow
+from ev_tripchain.hosting_capacity.common import (
+    compute_static_voltage_margin_score,
+    ensure_ev_load_elements,
+)
 from ev_tripchain.hosting_capacity.monte_carlo import (
     HardConstraintProbabilityBreakdown,
     MonteCarloEstimate,
     SoftMetricAggregate,
     build_probability_estimate,
+    early_stop_message,
 )
 from ev_tripchain.hosting_capacity.sensitivity import (
     VoltageSensitivityModel,
@@ -194,52 +199,8 @@ class _MCAccumulator:
 
 _MC_WORKER_STATE: _MCWorkerState | None = None
 
-
-def _ensure_ev_load_elements(net: Any) -> list[int]:
-    import pandapower as pp  # type: ignore
-
-    if "ev_tripchain_kind" not in net.load.columns:
-        net.load["ev_tripchain_kind"] = ""
-
-    ev_idx = net.load.index[net.load["ev_tripchain_kind"] == "ev"].tolist()
-    if ev_idx:
-        return ev_idx
-
-    # one EV load element per bus (except ext_grid bus if it exists)
-    ext_buses = set(net.ext_grid.bus.tolist()) if hasattr(net, "ext_grid") else set()
-    for bus in net.bus.index.tolist():
-        if bus in ext_buses:
-            continue
-        idx = pp.create_load(net, bus=bus, p_mw=0.0, q_mvar=0.0, name=f"ev@{bus}")
-        net.load.at[idx, "ev_tripchain_kind"] = "ev"
-        ev_idx.append(idx)
-    return ev_idx
-
-
-def _static_voltage_margin_score(
-    net: Any,
-    *,
-    buses: np.ndarray,
-    vmin: float,
-    vmax: float,
-) -> np.ndarray:
-    """
-    Compute a static grid-headroom score per EV-load column based on base-case voltages.
-
-    This is a lightweight proxy for node margin mentioned in the opening report/literature.
-    """
-    try:
-        run_powerflow(net)
-        bus_ids = [int(b) for b in np.asarray(buses, dtype=int).reshape(-1).tolist()]
-        vm = net.res_bus.loc[bus_ids, "vm_pu"].to_numpy(dtype=float)  # type: ignore[attr-defined]
-        margin = np.minimum(vm - float(vmin), float(vmax) - vm)
-        margin = np.clip(margin, 0.0, None)
-        if not np.isfinite(margin).all():
-            raise ValueError("non-finite voltage margin")
-        return margin
-    except Exception:
-        # Fallback: neutral scores (no grid preference).
-        return np.ones(int(np.asarray(buses).size), dtype=float)
+# Backwards-compatible alias for older internal imports/tests.
+_ensure_ev_load_elements = ensure_ev_load_elements
 
 
 def _evaluate_base_case_constraints(
@@ -268,26 +229,37 @@ def _evaluate_base_case_constraints(
     )
 
 
+def _evaluate_cfg_base_case(
+    net: Any,
+    cfg: ProjectConfig,
+    *,
+    ev_idx: list[int] | None = None,
+) -> ConstraintEvaluation | None:
+    if ev_idx is None:
+        ev_idx = ensure_ev_load_elements(net)
+    return _evaluate_base_case_constraints(
+        net,
+        ev_idx=ev_idx,
+        vmin=float(cfg.constraints.hard.vmin_pu),
+        vmax=float(cfg.constraints.hard.vmax_pu),
+        line_max=float(cfg.constraints.hard.line_loading_max_percent),
+        trafo_max=float(cfg.constraints.hard.trafo_loading_max_percent),
+        nominal_voltage_pu=float(cfg.constraints.soft.nominal_voltage_pu),
+    )
+
+
 def _prepare_mc_static_context(net: Any, cfg: ProjectConfig) -> _MCStaticContext | None:
-    ev_idx = _ensure_ev_load_elements(net)
+    ev_idx = ensure_ev_load_elements(net)
     buses = net.load.loc[ev_idx, "bus"].to_numpy()
     n_buses = len(ev_idx)
     hard_cfg = cfg.constraints.hard
     soft_cfg = cfg.constraints.soft
 
-    base_case = _evaluate_base_case_constraints(
-        net,
-        ev_idx=ev_idx,
-        vmin=float(hard_cfg.vmin_pu),
-        vmax=float(hard_cfg.vmax_pu),
-        line_max=float(hard_cfg.line_loading_max_percent),
-        trafo_max=float(hard_cfg.trafo_loading_max_percent),
-        nominal_voltage_pu=float(soft_cfg.nominal_voltage_pu),
-    )
+    base_case = _evaluate_cfg_base_case(net, cfg, ev_idx=ev_idx)
     if base_case is None or base_case.hard.any_exceedance:
         return None
 
-    bus_score = _static_voltage_margin_score(
+    bus_score = compute_static_voltage_margin_score(
         net,
         buses=buses,
         vmin=float(hard_cfg.vmin_pu),
@@ -535,6 +507,47 @@ def _unsafe_base_case_estimate(
     )
 
 
+def _scenario_from_base_case(base_case: ConstraintEvaluation | None) -> ScenarioEvaluation:
+    if base_case is None:
+        return ScenarioEvaluation(
+            hard=ScenarioHardConstraintFlags(solver_failure=True),
+            soft=ScenarioSoftMetricSummary(),
+        )
+    return ScenarioEvaluation(
+        hard=ScenarioHardConstraintFlags(
+            voltage_limit_exceedance=base_case.hard.voltage_exceedance,
+            line_limit_exceedance=base_case.hard.line_overload,
+            trafo_limit_exceedance=base_case.hard.trafo_overload,
+        ),
+        soft=ScenarioSoftMetricSummary(
+            peak_voltage_deviation_pu=float(base_case.soft.voltage_deviation_max_pu),
+            peak_network_loss_mw=float(base_case.soft.network_loss_mw),
+            peak_line_loading_percent=float(base_case.soft.line_loading_peak_percent),
+            peak_trafo_loading_percent=float(base_case.soft.trafo_loading_peak_percent),
+        ),
+    )
+
+
+def _should_stop_early(
+    *,
+    acc: _MCAccumulator,
+    total: int,
+    threshold: float | None,
+    progress: Callable[[str], None] | None,
+) -> bool:
+    message = early_stop_message(
+        executed=acc.executed,
+        total=total,
+        n_events=acc.any_limit_n_events,
+        threshold=threshold,
+    )
+    if message is None:
+        return False
+    if progress is not None:
+        progress(message)
+    return True
+
+
 def _init_mc_worker(cfg_data: dict[str, Any]) -> None:
     global _MC_WORKER_STATE
     cfg = ProjectConfig.model_validate(cfg_data)
@@ -548,34 +561,7 @@ def _mc_worker_simulate(task: tuple[int, int]) -> ScenarioEvaluation:
     if state is None:
         raise RuntimeError("MC worker state is not initialized.")
     if state.ctx is None:
-        ev_idx = _ensure_ev_load_elements(state.net)
-        base_case = _evaluate_base_case_constraints(
-            state.net,
-            ev_idx=ev_idx,
-            vmin=float(state.cfg.constraints.hard.vmin_pu),
-            vmax=float(state.cfg.constraints.hard.vmax_pu),
-            line_max=float(state.cfg.constraints.hard.line_loading_max_percent),
-            trafo_max=float(state.cfg.constraints.hard.trafo_loading_max_percent),
-            nominal_voltage_pu=float(state.cfg.constraints.soft.nominal_voltage_pu),
-        )
-        if base_case is None:
-            return ScenarioEvaluation(
-                hard=ScenarioHardConstraintFlags(solver_failure=True),
-                soft=ScenarioSoftMetricSummary(),
-            )
-        return ScenarioEvaluation(
-            hard=ScenarioHardConstraintFlags(
-                voltage_limit_exceedance=base_case.hard.voltage_exceedance,
-                line_limit_exceedance=base_case.hard.line_overload,
-                trafo_limit_exceedance=base_case.hard.trafo_overload,
-            ),
-            soft=ScenarioSoftMetricSummary(
-                peak_voltage_deviation_pu=float(base_case.soft.voltage_deviation_max_pu),
-                peak_network_loss_mw=float(base_case.soft.network_loss_mw),
-                peak_line_loading_percent=float(base_case.soft.line_loading_peak_percent),
-                peak_trafo_loading_percent=float(base_case.soft.trafo_loading_peak_percent),
-            ),
-        )
+        return _scenario_from_base_case(_evaluate_cfg_base_case(state.net, state.cfg))
 
     n, scenario_idx = (int(task[0]), int(task[1]))
     rng_s = make_rng_for(int(state.cfg.seed), 9103, int(scenario_idx))
@@ -629,28 +615,13 @@ def _estimate_hard_exceedance_probability_parallel(
                 f"hard_limit_exceedances={acc.any_limit_n_events}"
             )
 
-        if cfg.hosting_capacity.risk_tolerance is not None and acc.executed >= 5:
-            any_limit = build_probability_estimate(
-                n=acc.executed,
-                n_events=acc.any_limit_n_events,
-            )
-            threshold = float(cfg.hosting_capacity.risk_tolerance)
-            if any_limit.ci95_low > threshold * 3:
-                if progress is not None:
-                    progress(
-                        "early stop at "
-                        f"{acc.executed}/{total}: "
-                        f"CI lower={any_limit.ci95_low:.4f} > {threshold * 3:.4f}"
-                    )
-                break
-            if any_limit.ci95_high <= threshold:
-                if progress is not None:
-                    progress(
-                        "early stop at "
-                        f"{acc.executed}/{total}: "
-                        f"CI upper={any_limit.ci95_high:.4f} <= {threshold:.4f}"
-                    )
-                break
+        if _should_stop_early(
+            acc=acc,
+            total=total,
+            threshold=cfg.hosting_capacity.risk_tolerance,
+            progress=progress,
+        ):
+            break
 
     return acc.to_estimate()
 
@@ -691,28 +662,13 @@ def _estimate_hard_exceedance_probability_serial(
                     f"hard_limit_exceedances={acc.any_limit_n_events}"
                 )
 
-        if cfg.hosting_capacity.risk_tolerance is not None and acc.executed >= 5:
-            any_limit = build_probability_estimate(
-                n=acc.executed,
-                n_events=acc.any_limit_n_events,
-            )
-            threshold = float(cfg.hosting_capacity.risk_tolerance)
-            if any_limit.ci95_low > threshold * 3:
-                if progress is not None:
-                    progress(
-                        "early stop at "
-                        f"{acc.executed}/{total}: "
-                        f"CI lower={any_limit.ci95_low:.4f} > {threshold * 3:.4f}"
-                    )
-                break
-            if any_limit.ci95_high <= threshold:
-                if progress is not None:
-                    progress(
-                        "early stop at "
-                        f"{acc.executed}/{total}: "
-                        f"CI upper={any_limit.ci95_high:.4f} <= {threshold:.4f}"
-                    )
-                break
+        if _should_stop_early(
+            acc=acc,
+            total=total,
+            threshold=cfg.hosting_capacity.risk_tolerance,
+            progress=progress,
+        ):
+            break
 
     return acc.to_estimate()
 
@@ -734,16 +690,7 @@ def estimate_hard_exceedance_probability_mc(
     """
     static_ctx = _prepare_mc_static_context(net, cfg)
     if static_ctx is None:
-        ev_idx = _ensure_ev_load_elements(net)
-        base_case = _evaluate_base_case_constraints(
-            net,
-            ev_idx=ev_idx,
-            vmin=float(cfg.constraints.hard.vmin_pu),
-            vmax=float(cfg.constraints.hard.vmax_pu),
-            line_max=float(cfg.constraints.hard.line_loading_max_percent),
-            trafo_max=float(cfg.constraints.hard.trafo_loading_max_percent),
-            nominal_voltage_pu=float(cfg.constraints.soft.nominal_voltage_pu),
-        )
+        base_case = _evaluate_cfg_base_case(net, cfg)
         return _unsafe_base_case_estimate(
             n_scenarios=cfg.hosting_capacity.scenarios,
             base_case=base_case,

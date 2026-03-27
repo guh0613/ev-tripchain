@@ -16,9 +16,9 @@ import numpy as np
 from ev_tripchain.config import ProjectConfig
 from ev_tripchain.grid.constraints import evaluate_constraints
 from ev_tripchain.grid.powerflow import run_powerflow
+from ev_tripchain.hosting_capacity.common import ensure_ev_load_elements
 from ev_tripchain.hosting_capacity.representative import (
     build_representative_ev_profile,
-    ensure_ev_load_elements,
 )
 from ev_tripchain.hosting_capacity.search import binary_search_max_n
 from ev_tripchain.hosting_capacity.sensitivity import build_voltage_sensitivity_model

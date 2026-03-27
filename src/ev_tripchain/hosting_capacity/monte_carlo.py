@@ -79,6 +79,31 @@ def build_probability_estimate(*, n: int, n_events: int) -> ProbabilityEstimate:
     )
 
 
+def early_stop_message(
+    *,
+    executed: int,
+    total: int,
+    n_events: int,
+    threshold: float | None,
+) -> str | None:
+    if threshold is None or int(executed) < 5:
+        return None
+
+    estimate = build_probability_estimate(n=int(executed), n_events=int(n_events))
+    limit = float(threshold)
+    if estimate.ci95_low > limit * 3:
+        return (
+            f"early stop at {int(executed)}/{int(total)}: "
+            f"CI lower={estimate.ci95_low:.4f} > {limit * 3:.4f}"
+        )
+    if estimate.ci95_high <= limit:
+        return (
+            f"early stop at {int(executed)}/{int(total)}: "
+            f"CI upper={estimate.ci95_high:.4f} <= {limit:.4f}"
+        )
+    return None
+
+
 def estimate_event_probability(
     simulate_event: ScenarioEventFn,
     *,
@@ -112,22 +137,17 @@ def estimate_event_probability(
             if should_report:
                 progress(f"scenarios {i + 1}/{n}, events={n_events}")
 
-        # Early stopping: once we have enough evidence, stop running more scenarios.
-        # Use a stricter threshold to avoid premature stopping for borderline cases.
-        if early_stop_threshold is not None and (i + 1) >= 5:
-            ci_lo, ci_hi = _wilson_ci_95(n=i + 1, n_events=n_events)
-            if ci_lo > early_stop_threshold * 3:
-                # Clearly well above threshold — no point running more
-                actually_run = i + 1
-                if progress is not None:
-                    progress(f"early stop at {actually_run}/{n}: CI lower={ci_lo:.4f} > {early_stop_threshold * 3:.4f}")
-                break
-            if ci_hi <= early_stop_threshold:
-                # Clearly below threshold — further samples cannot change the decision much
-                actually_run = i + 1
-                if progress is not None:
-                    progress(f"early stop at {actually_run}/{n}: CI upper={ci_hi:.4f} <= {early_stop_threshold:.4f}")
-                break
+        message = early_stop_message(
+            executed=i + 1,
+            total=n,
+            n_events=n_events,
+            threshold=early_stop_threshold,
+        )
+        if message is not None:
+            actually_run = i + 1
+            if progress is not None:
+                progress(message)
+            break
 
     p_hat = n_events / actually_run if actually_run > 0 else 0.0
     ci_low, ci_high = _wilson_ci_95(n=actually_run, n_events=n_events)
