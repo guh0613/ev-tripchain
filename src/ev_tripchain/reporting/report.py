@@ -158,18 +158,18 @@ def analyse_soc_evolution(cfg: ProjectConfig) -> dict:
             Stop(zone=1, arrival_minute=8 * 60 + 30, departure_minute=17 * 60 + 30, purpose="work"),
             Stop(zone=0, arrival_minute=18 * 60, departure_minute=24 * 60, purpose="home"),
         ],
-        leg_distance_km=[25.0, 25.0],
+        leg_distance_km=[45.0, 45.0],
     )
 
     soc_cfg = cfg.mobility.soc
     soc_params = SOCEvolutionParams(
         battery_capacity_kwh=soc_cfg.battery_capacity_kwh,
         consumption_kwh_per_km=soc_cfg.consumption_kwh_per_km,
-        initial_soc_mean=0.75,
+        initial_soc_mean=0.55,
         initial_soc_std=0.0,
         charge_power_kw=cfg.ev.charge_power_kw,
         charge_efficiency=soc_cfg.charge_efficiency,
-        charge_trigger_soc=0.60,
+        charge_trigger_soc=0.30,
         charge_purposes=tuple(soc_cfg.charge_purposes),
         allow_initial_stop_charging=False,
     )
@@ -177,7 +177,7 @@ def analyse_soc_evolution(cfg: ProjectConfig) -> dict:
     step_minutes = cfg.time.step_minutes
     n_steps = cfg.time.n_steps
     soc, p_kw = simulate_soc_and_charging_profile(
-        tc, soc_params, step_minutes=step_minutes, n_steps=n_steps, rng=rng, initial_soc=0.75,
+        tc, soc_params, step_minutes=step_minutes, n_steps=n_steps, rng=rng, initial_soc=0.55,
     )
     hours = np.arange(n_steps + 1) * (step_minutes / 60.0)
     return {"hours": hours, "soc": soc, "p_kw": p_kw, "step_minutes": step_minutes}

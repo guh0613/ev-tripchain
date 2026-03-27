@@ -1,6 +1,10 @@
 import numpy as np
 
-from ev_tripchain.mobility.soc import SOCEvolutionParams, simulate_soc_and_charging_profile
+from ev_tripchain.mobility.soc import (
+    SOCEvolutionParams,
+    _needs_charge_before_next_leg,
+    simulate_soc_and_charging_profile,
+)
 from ev_tripchain.mobility.trip_chain import Stop, TripChain
 
 
@@ -39,3 +43,34 @@ def test_soc_decreases_with_mileage_and_charges_when_triggered() -> None:
     assert soc.min() <= 0.25
     assert soc[-1] >= soc[0]
 
+
+def test_charge_trigger_uses_next_leg_reserve_requirement() -> None:
+    tc = TripChain(
+        stops=[
+            Stop(zone=0, arrival_minute=0, departure_minute=60, purpose="home"),
+            Stop(zone=1, arrival_minute=90, departure_minute=180, purpose="work"),
+            Stop(zone=0, arrival_minute=210, departure_minute=1440, purpose="home"),
+        ],
+        leg_distance_km=[50.0, 50.0],
+    )
+
+    should_charge = _needs_charge_before_next_leg(
+        stop_index=1,
+        trip_chain=tc,
+        energy_kwh=22.0,
+        battery_capacity_kwh=50.0,
+        consumption_kwh_per_km=0.2,
+        reserve_soc=0.3,
+    )
+
+    should_not_charge = _needs_charge_before_next_leg(
+        stop_index=1,
+        trip_chain=tc,
+        energy_kwh=30.0,
+        battery_capacity_kwh=50.0,
+        consumption_kwh_per_km=0.2,
+        reserve_soc=0.3,
+    )
+
+    assert should_charge is True
+    assert should_not_charge is False

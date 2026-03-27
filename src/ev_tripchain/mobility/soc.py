@@ -18,6 +18,31 @@ def _trunc01(x: float) -> float:
     return float(min(1.0, max(0.0, x)))
 
 
+def _needs_charge_before_next_leg(
+    *,
+    stop_index: int,
+    trip_chain: TripChain,
+    energy_kwh: float,
+    battery_capacity_kwh: float,
+    consumption_kwh_per_km: float,
+    reserve_soc: float,
+) -> bool:
+    """
+    Literature-aligned charge trigger.
+
+    Charge at stop n when the remaining energy after the next leg would drop below
+    the reserve threshold, i.e. E_n - omega_(n+1) * l_(n+1) < reserve * C.
+    """
+    if stop_index >= trip_chain.n_legs:
+        return False
+
+    next_leg_kwh = (
+        float(trip_chain.leg_distance_km[stop_index]) * float(consumption_kwh_per_km)
+    )
+    reserve_kwh = float(battery_capacity_kwh) * float(reserve_soc)
+    return float(energy_kwh) - next_leg_kwh < reserve_kwh
+
+
 @dataclass(frozen=True)
 class SOCEvolutionParams:
     battery_capacity_kwh: float = 60.0
@@ -155,7 +180,15 @@ def simulate_soc_and_bus_profile(
                     and batt_charge_kwh_per_min > 0
                 ):
                     soc_at_arrival = energy_kwh / cap
-                    if soc_at_arrival <= float(params.charge_trigger_soc):
+                    should_charge = _needs_charge_before_next_leg(
+                        stop_index=i_stop,
+                        trip_chain=trip_chain,
+                        energy_kwh=energy_kwh,
+                        battery_capacity_kwh=cap,
+                        consumption_kwh_per_km=float(params.consumption_kwh_per_km),
+                        reserve_soc=float(params.charge_trigger_soc),
+                    )
+                    if should_charge:
                         needed_kwh = cap * (float(params.soc_max) - soc_at_arrival)
                         if needed_kwh > 0:
                             minutes_needed = int(np.ceil(needed_kwh / batt_charge_kwh_per_min))

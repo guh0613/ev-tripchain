@@ -47,23 +47,23 @@ mobility:
     n_nodes: 50
   trip_chain:
     n_zones: 50
-    other_stops_mean: 0.8
+    other_stops_mean: 1.0
     first_departure_mean: "07:30"
     first_departure_std_minutes: 35
-    work_duration_mean_minutes: 480
+    work_duration_mean_minutes: 520
     work_duration_std_minutes: 45
     other_dwell_mean_minutes: 50
     other_dwell_std_minutes: 25
-    travel_minutes_per_km: 2.0
+    travel_minutes_per_km: 1.8
     distance_km_mean: 20.0
     distance_km_std: 10.0
   soc:
     battery_capacity_kwh: 60.0
     consumption_kwh_per_km: 0.18
-    initial_soc_mean: 0.75
-    initial_soc_std: 0.12
+    initial_soc_mean: 0.60  # use the private-car SOC mean reported by 罗卓伟等 as a conservative initial-SOC proxy
+    initial_soc_std: 0.10
     soc_min: 0.0
     soc_max: 1.0
     charge_efficiency: 0.92
-    charge_trigger_soc: 0.5
+    charge_trigger_soc: 0.3  # 30% reserve SOC follows the trip-chain charging criterion in 陈丽丹等
     charge_purposes: ["home", "work"]

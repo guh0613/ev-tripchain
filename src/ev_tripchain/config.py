@@ -234,7 +234,13 @@ class SOCConfig(BaseModel):
     soc_max: float = 1.0
 
     charge_efficiency: float = 0.92
-    charge_trigger_soc: float = 0.3
+    charge_trigger_soc: float = Field(
+        default=0.3,
+        description=(
+            "Minimum reserve SOC that should remain after the next trip leg. "
+            "Trip-chain charging is triggered when the next leg would push SOC below this reserve."
+        ),
+    )
     charge_purposes: list[str] = Field(default_factory=lambda: ["home", "work"])
 
 

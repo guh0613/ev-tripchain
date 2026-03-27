@@ -32,16 +32,19 @@ constraints:
 
 ev:
   charge_power_kw: 7.2
-  sessions_per_vehicle_mean: 0.9
+  sessions_per_vehicle_mean: 1.0
   duration_minutes_mean: 120
   duration_minutes_std: 40
   start_time_mix:
     - weight: 0.7
-      mean: "20:00"
+      mean: "19:00"
       std_minutes: 90
-    - weight: 0.3
-      mean: "12:30"
-      std_minutes: 60
+    - weight: 0.2
+      mean: "09:00"
+      std_minutes: 30
+    - weight: 0.1
+      mean: "20:30"
+      std_minutes: 45
 
 strategy:
   name: uncontrolled  # uncontrolled | nearest | navigation | ordered
