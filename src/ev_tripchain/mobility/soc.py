@@ -18,6 +18,38 @@ def _trunc01(x: float) -> float:
     return float(min(1.0, max(0.0, x)))
 
 
+def _spans_day_boundary(*, arrival_minute: int, departure_minute: int, day_minutes: int) -> bool:
+    if day_minutes <= 0:
+        raise ValueError("day_minutes must be positive.")
+    if departure_minute <= arrival_minute:
+        return False
+    start_day = int(arrival_minute) // int(day_minutes)
+    end_day = (int(departure_minute) - 1) // int(day_minutes)
+    return end_day > start_day
+
+
+def _final_home_charge_probability(*, arrival_minute: int, day_minutes: int = 24 * 60) -> float:
+    """
+    Participation probability for supplementary end-of-day home charging.
+
+    Literature-inspired assumption:
+    - before 17:00: not treated as the day's final home parking;
+    - 17:00-22:00: probability ramps linearly from 10% to 100%;
+    - after 22:00 and before 06:00: treated as the final parking with probability 100%.
+    """
+    minute_of_day = int(arrival_minute) % int(day_minutes)
+    evening_start = 17 * 60
+    full_charge_after = 22 * 60
+    overnight_end = 6 * 60
+    if minute_of_day >= full_charge_after or minute_of_day < overnight_end:
+        return 1.0
+    if minute_of_day < evening_start:
+        return 0.0
+    span = float(full_charge_after - evening_start)
+    ratio = float(minute_of_day - evening_start) / span
+    return float(0.1 + 0.9 * ratio)
+
+
 def _needs_charge_before_next_leg(
     *,
     stop_index: int,
@@ -43,6 +75,24 @@ def _needs_charge_before_next_leg(
     return float(energy_kwh) - next_leg_kwh < reserve_kwh
 
 
+def _is_final_home_stop(
+    *,
+    stop_index: int,
+    stop: Stop,
+    trip_chain: TripChain,
+    day_minutes: int = 24 * 60,
+) -> bool:
+    if stop.purpose != "home":
+        return False
+    if stop_index >= trip_chain.n_legs:
+        return True
+    return _spans_day_boundary(
+        arrival_minute=int(stop.arrival_minute),
+        departure_minute=int(stop.departure_minute),
+        day_minutes=int(day_minutes),
+    )
+
+
 @dataclass(frozen=True)
 class SOCEvolutionParams:
     battery_capacity_kwh: float = 60.0
@@ -59,6 +109,8 @@ class SOCEvolutionParams:
     charge_trigger_soc: float = 0.3
     charge_purposes: tuple[str, ...] = ("home", "work")
     allow_initial_stop_charging: bool = False
+    final_home_charge_enabled: bool = False
+    final_home_target_soc: float = 0.9
 
 
 @dataclass(frozen=True)
@@ -180,7 +232,7 @@ def simulate_soc_and_bus_profile(
                     and batt_charge_kwh_per_min > 0
                 ):
                     soc_at_arrival = energy_kwh / cap
-                    should_charge = _needs_charge_before_next_leg(
+                    should_charge_for_next_leg = _needs_charge_before_next_leg(
                         stop_index=i_stop,
                         trip_chain=trip_chain,
                         energy_kwh=energy_kwh,
@@ -188,8 +240,26 @@ def simulate_soc_and_bus_profile(
                         consumption_kwh_per_km=float(params.consumption_kwh_per_km),
                         reserve_soc=float(params.charge_trigger_soc),
                     )
-                    if should_charge:
-                        needed_kwh = cap * (float(params.soc_max) - soc_at_arrival)
+                    target_soc = float(params.soc_max)
+                    should_charge_for_final_home = (
+                        bool(params.final_home_charge_enabled)
+                        and _is_final_home_stop(
+                            stop_index=i_stop,
+                            stop=st,
+                            trip_chain=trip_chain,
+                        )
+                        and soc_at_arrival < float(params.final_home_target_soc)
+                    )
+                    if should_charge_for_final_home and not should_charge_for_next_leg:
+                        should_charge_for_final_home = (
+                            rng.random()
+                            < _final_home_charge_probability(arrival_minute=m)
+                        )
+                    if should_charge_for_final_home and not should_charge_for_next_leg:
+                        target_soc = float(params.final_home_target_soc)
+                    target_soc = float(np.clip(target_soc, params.soc_min, params.soc_max))
+                    if should_charge_for_next_leg or should_charge_for_final_home:
+                        needed_kwh = cap * (target_soc - soc_at_arrival)
                         if needed_kwh > 0:
                             minutes_needed = int(np.ceil(needed_kwh / batt_charge_kwh_per_min))
                             decision = charging_decision_fn(

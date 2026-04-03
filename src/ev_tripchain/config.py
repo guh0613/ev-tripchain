@@ -242,6 +242,21 @@ class SOCConfig(BaseModel):
         ),
     )
     charge_purposes: list[str] = Field(default_factory=lambda: ["home", "work"])
+    final_home_charge_enabled: bool = Field(
+        default=False,
+        description=(
+            "When enabled, an overnight/final home stop can trigger extra charging even if "
+            "the next-leg reserve rule is already satisfied."
+        ),
+    )
+    final_home_target_soc: float = Field(
+        default=0.9,
+        ge=0.0,
+        le=1.0,
+        description=(
+            "Target SOC used by the supplementary overnight/final home charging rule."
+        ),
+    )
 
 
 class MappingConfig(BaseModel):

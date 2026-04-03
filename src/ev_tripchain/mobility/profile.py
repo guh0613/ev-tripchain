@@ -136,6 +136,8 @@ def build_ev_profile_mw(
         charge_efficiency=float(soc_cfg.charge_efficiency),
         charge_trigger_soc=float(soc_cfg.charge_trigger_soc),
         charge_purposes=tuple(soc_cfg.charge_purposes),
+        final_home_charge_enabled=bool(soc_cfg.final_home_charge_enabled),
+        final_home_target_soc=float(soc_cfg.final_home_target_soc),
     )
 
     ordered_window: tuple[int, int] | None = None

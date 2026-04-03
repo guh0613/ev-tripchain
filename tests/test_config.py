@@ -31,6 +31,13 @@ def test_repo_configs_keep_p_hat_for_hosting_capacity_decision() -> None:
         assert cfg.hosting_capacity.binary_search.initial_hi == 128
 
 
+def test_tripchain_config_enables_final_home_charging_rule() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    cfg = load_config(repo_root / "configs/tripchain_soc.yaml")
+    assert cfg.mobility.soc.final_home_charge_enabled is True
+    assert cfg.mobility.soc.final_home_target_soc == 0.9
+
+
 def test_parallel_workers_auto_resolution_is_positive() -> None:
     cfg = ProjectConfig(hosting_capacity={"parallel_workers": 0})
     assert cfg.hosting_capacity.resolved_parallel_workers >= 1

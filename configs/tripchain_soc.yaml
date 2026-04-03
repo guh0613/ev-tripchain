@@ -67,3 +67,5 @@ mobility:
     charge_efficiency: 0.92
     charge_trigger_soc: 0.3  # 30% reserve SOC follows the trip-chain charging criterion in 陈丽丹等
     charge_purposes: ["home", "work"]
+    final_home_charge_enabled: true
+    final_home_target_soc: 0.9

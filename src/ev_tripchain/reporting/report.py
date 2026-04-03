@@ -172,6 +172,8 @@ def analyse_soc_evolution(cfg: ProjectConfig) -> dict:
         charge_trigger_soc=0.30,
         charge_purposes=tuple(soc_cfg.charge_purposes),
         allow_initial_stop_charging=False,
+        final_home_charge_enabled=bool(soc_cfg.final_home_charge_enabled),
+        final_home_target_soc=float(soc_cfg.final_home_target_soc),
     )
 
     step_minutes = cfg.time.step_minutes
