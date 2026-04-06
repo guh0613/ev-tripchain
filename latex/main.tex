@@ -834,7 +834,7 @@
 
     \subsubsection{IEEE 33 节点标准系统}
 
-    IEEE 33 节点配电系统是配电网分析中广泛采用的标准测试算例，由 Baran 和 Wu[22] 在提出 DistFlow 潮流模型时首次使用。该系统为单电源辐射状配电网，额定电压 12.66 kV，包含 33 个节点和 32 条支路，节点 0 为变电站母线（平衡节点），其余 32 个节点为负荷节点。系统拓扑呈三分支树形结构：主馈线从节点 0 经节点 1—17 延伸至末端，两条分支馈线分别从节点 2 和节点 5 引出。此外，系统设有 5 条常开联络线，连接不同馈线分支的末端节点，为网络重构提供备选路径。
+    IEEE 33 节点配电系统是配电网分析中广泛采用的标准测试算例，由 Baran 和 Wu[22] 在提出 DistFlow 潮流模型时首次使用。该系统为单电源辐射状配电网，额定电压 12.66 kV，包含 33 个节点和 32 条支路，节点 0 为变电站母线（平衡节点），其余 32 个节点为负荷节点。系统拓扑呈三分支树形结构：主馈线从节点 0 经节点 1—17 延伸至末端，两条分支馈线分别从节点 2 和节点 5 引出。此外，系统设有 5 条常开联络线，连接不同馈线分支的末端节点，为网络重构提供备选路径。标准系统的拓扑结构如图 \ref{fig:ieee33_topology} 所示。
 
     对于辐射状配电网，DistFlow 方程[22] 是描述支路功率和节点电压关系的基本模型。设支路 $(i, i+1)$ 的电阻和电抗分别为 $r_i$ 和 $x_i$，节点 $i$ 的有功负荷和无功负荷分别为 $P_{L,i}$ 和 $Q_{L,i}$，则从节点 $i$ 到节点 $i+1$ 的功率流和电压递推关系为：
 
@@ -874,7 +874,12 @@
 
     本文采用 pandapower 开源工具[23] 进行配电网建模与潮流计算。pandapower 提供了 IEEE 标准测试系统的快速加载接口，支持牛顿-拉夫逊潮流算法，能够高效求解节点电压幅值、支路功率和线路负载率等关键运行指标。
 
-    \placeholderfigure{IEEE 33 节点配电网拓扑图}{fig:ieee33_topology}
+    \begin{figure}[htbp]
+        \centering
+        \includegraphics[width=0.86\textwidth]{fig_3_1.png}
+        \caption{标准 IEEE 33 节点配电网拓扑图}
+        \label{fig:ieee33_topology}
+    \end{figure}
 
     \subsubsection{改进方案与参数设定}
 
@@ -984,7 +989,30 @@
 
     其中第一项为线路损耗，第二项为变压器损耗。线路峰值负载率取全网线路中的最大负载率，反映线路运行裕度；变压器峰值负载率取全网节点等效负载率的峰值，反映节点供电能力的富余程度。
 
-    \placeholderfigure{硬约束与软指标双层评估体系结构图}{fig:dual_layer_assessment}
+    上述双层评估体系的指标构成汇总于表 \ref{tab:dual_layer_assessment}。
+
+    \begin{table}[htbp]
+        \centering
+        \caption{硬约束与软指标双层评估体系}
+        \label{tab:dual_layer_assessment}
+        \zihao{5}
+        \setlength{\tabcolsep}{4pt}
+        \renewcommand{\arraystretch}{1.3}
+        \begin{tabularx}{\textwidth}{>{\centering\arraybackslash}p{1.9cm} >{\centering\arraybackslash}p{2.3cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{3.3cm}}
+            \toprule
+            评估层级 & 指标名称 & 约束条件或计算方式 & 判定规则 \\
+            \midrule
+            硬约束层 & 电压越限 & $V_{\min} \leq V_i \leq V_{\max}$（0.95--1.05 p.u.） & 任一母线越限即判定违规 \\
+            硬约束层 & 线路热稳定 & $S_l / S_{l,\text{rated}} \leq 100\%$ & 任一线路过载即判定违规 \\
+            硬约束层 & 变压器容量 & $\sqrt{P_i^2 + Q_i^2} / S_{n,i} \leq 100\%$ & 任一节点过载即判定违规 \\
+            硬约束层 & 潮流收敛性 & Newton-Raphson 迭代收敛 & 不收敛即判定违规 \\
+            软指标层 & 电压偏差 & $\Delta V_i = \lvert V_i - V_{\text{nom}} \rvert$ & 统计全网均值与最大值 \\
+            软指标层 & 网络有功损耗 & $P_{\text{loss}} = \sum P_{l,\text{loss}}$ & 反映运行经济性 \\
+            软指标层 & 线路峰值负载率 & $\max_l(S_l / S_{l,\text{rated}})$ & 反映线路运行裕度 \\
+            软指标层 & 变压器峰值负载率 & $\max_i \eta_i$ & 反映供电能力富余程度 \\
+            \bottomrule
+        \end{tabularx}
+    \end{table}
 
     双层结构的设计动机在于：硬约束层以越限与否的二值判据严格界定承载力边界，确保评估结果满足安全运行的刚性要求；软指标层以连续量化指标刻画不同接入规模下的运行质量退化趋势，为配电网规划者提供更为丰富的决策信息。例如，当两种策略的承载力 $N^*$ 接近时，软指标可揭示二者在网损或电压偏差方面的差异，辅助选择更优方案。
 
@@ -1039,11 +1067,13 @@
     \begin{figure}[htbp]
         \centering
         \subfigure[（a）三阶段自适应二分搜索流程]{
-            \includegraphics[width=0.46\textwidth]{fig3_4_p1.png}
+            \includegraphics[width=0.62\textwidth]{fig3_4_p1.png}
         }
-        \hfill
+
+        \vspace{0.4em}
+
         \subfigure[（b）单次 $\hat{\pi}(N)$ 评估流程]{
-            \includegraphics[width=0.46\textwidth]{fig3_4_p2.png}
+            \includegraphics[width=0.62\textwidth]{fig3_4_p2.png}
         }
         \caption{自适应二分搜索算法流程图}
         \label{fig:adaptive_binary_search}
