@@ -233,7 +233,7 @@
     \vspace*{16pt}
 
     {\thesisbodyfont
-    随着“双碳”目标的推进与电动汽车规模化发展，充电负荷的时空不确定性对配电网安全运行构成挑战。本文围绕充电负荷时空建模与配电网承载力概率评估展开研究。首先，构建基于出行链的多日连续仿真模型，刻画日内多次出行、驻留、充电全过程，生成母线级时序负荷矩阵。其次，提出硬约束与软指标双层评估体系，以蒙特卡洛概率评估为核心，辅以确定性和灵敏度方法，通过自适应二分搜索求解最大可接纳电动汽车规模 $N^*$。最后，设计融合五因子动态评分的充电导航策略，量化空间引导对承载力的提升效果。以改进 IEEE 33 节点系统为算例，仿真表明：出行链模型下无序充电承载力为 85 辆，导航策略提升至 101 辆，增幅约 19\%；三种方法所得承载力呈确定性（7 辆）$<$灵敏度（24 辆）$<$蒙特卡洛（85 辆）的递增关系；电压约束为系统唯一瓶颈，母线 17 为最薄弱节点。
+    随着“双碳”目标的推进与电动汽车规模化发展，充电负荷的时空不确定性对配电网安全运行构成挑战。本文围绕充电负荷时空建模与配电网承载力概率评估展开研究。首先，构建基于出行链的多日连续仿真模型，刻画日内多次出行、驻留、充电全过程，生成母线级时序负荷矩阵。其次，提出硬约束与软指标双层评估体系，以蒙特卡洛概率评估为核心，辅以确定性和灵敏度方法，通过自适应二分搜索求解最大可接纳电动汽车规模 $N^*$。最后，设计融合五因子动态评分的充电导航策略，量化空间引导对承载力的提升效果。以改进 IEEE 33 节点系统（$\lambda = 1.0$，$P_{ch} = 7.2$ kW）为算例，仿真表明：出行链模型下无序充电承载力为 97 辆，导航策略提升至 127 辆，增幅约 31\%；三种评估方法所得承载力呈灵敏度下界（24 辆）$<$蒙特卡洛（97 辆）$<$确定性均值（120 辆）的层次关系，揭示了基于均值模板的确定性方法因平滑随机波动而倾向于高估承载力；电压约束为系统唯一瓶颈，母线 31 为最薄弱节点。
     \par}
 
     \bigskip
@@ -248,7 +248,7 @@
     \vspace*{16pt}
 
     {\thesisenglishfont
-    With China's carbon peak and carbon neutrality goals driving rapid electric vehicle (EV) adoption, the pronounced spatio-temporal uncertainty of charging loads poses significant challenges to distribution network operation. This paper presents a systematic study on spatio-temporal modeling of EV charging loads and probabilistic hosting capacity assessment of distribution networks. First, a trip-chain-based multi-day continuous simulation model is developed to capture the complete daily cycle of travel, parking, and charging behaviors, thereby generating bus-level time-series charging load matrices. Second, a dual-layer assessment framework combining hard constraints and soft indicators is proposed. Monte Carlo probabilistic evaluation serves as the core method, supplemented by deterministic assessment and voltage sensitivity analysis, while an adaptive binary search algorithm is employed to determine the maximum admissible EV count $N^*$. Third, a charging navigation strategy incorporating a five-factor dynamic scoring mechanism is designed to guide spatial redistribution of charging loads and quantify the resulting hosting capacity improvement. Simulation results on the modified IEEE 33-bus system demonstrate that the hosting capacity under uncontrolled charging with the trip-chain model is 85 EVs, which the navigation strategy increases to 101 EVs, representing a 19\% improvement. The three assessment methods yield hosting capacities of 7, 24, and 85 EVs, respectively. Voltage constraint is identified as the sole binding factor, with Bus 17 as the weakest node.
+    With China's carbon peak and carbon neutrality goals driving rapid electric vehicle (EV) adoption, the pronounced spatio-temporal uncertainty of charging loads poses significant challenges to distribution network operation. This paper presents a systematic study on spatio-temporal modeling of EV charging loads and probabilistic hosting capacity assessment of distribution networks. First, a trip-chain-based multi-day continuous simulation model is developed to capture the complete daily cycle of travel, parking, and charging behaviors, thereby generating bus-level time-series charging load matrices. Second, a dual-layer assessment framework combining hard constraints and soft indicators is proposed. Monte Carlo probabilistic evaluation serves as the core method, supplemented by deterministic assessment and voltage sensitivity analysis, while an adaptive binary search algorithm is employed to determine the maximum admissible EV count $N^*$. Third, a charging navigation strategy incorporating a five-factor dynamic scoring mechanism is designed to guide spatial redistribution of charging loads and quantify the resulting hosting capacity improvement. Simulation results on the modified IEEE 33-bus system ($\lambda = 1.0$, $P_{ch} = 7.2$ kW) demonstrate that the hosting capacity under uncontrolled charging with the trip-chain model is 97 EVs, which the navigation strategy increases to 127 EVs, representing a 31\% improvement. The three assessment methods yield hosting capacities in a layered hierarchy: sensitivity lower bound (24 EVs) $<$ Monte Carlo (97 EVs) $<$ deterministic mean-template (120 EVs), revealing that deterministic methods based on mean templates tend to overestimate hosting capacity by smoothing out stochastic fluctuations. Voltage constraint is identified as the sole binding factor, with Bus 31 as the weakest node.
     \par}
 
     \bigskip
@@ -324,7 +324,7 @@
         \caption{电动汽车充电负荷建模方法对比}
         \label{tab:model_compare}
         \zihao{5}
-        \setlength{\tabcolsep}{4pt}
+        \setlength{\tabcolsep}{3pt}
         \renewcommand{\arraystretch}{1.35}
         \begin{tabularx}{\textwidth}{>{\centering\arraybackslash}p{1.8cm} >{\centering\arraybackslash}p{2.6cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
             \toprule
@@ -401,6 +401,17 @@
 
     \noindent\textbf{（3）多因子动态评分导航策略及“空间换容量”作用机理分析（第 4 章）。}
     建立无序充电、就近充电、有序充电和充电导航四类策略模型。其中，导航策略融合距离衰减权重、静态电压裕度评分、动态负荷拥塞惩罚、灵敏度模型电压预测和上游馈线拥塞权重五项因子，通过温度采样机制在候选充电母线中进行概率选择，引导负荷从薄弱母线向裕度充足的母线转移。在出行链和会话式两种负荷模型下分别运行全部策略的承载力评估，量化导航策略的增益幅度，并通过母线级负荷和电压的空间分布对比揭示“空间换容量”的作用机理。
+
+    本文的主要创新点归纳如下：
+
+    \noindent\textbf{创新点 1：}
+    针对传统单日出行链模型难以处理跨午夜充电的问题，构建多日连续仿真框架，使 SOC 与充电会话可跨日延续。该框架通过逐日独立采样与时间偏移拼接，实现了有序充电窗口（22:00-次日 06:00）的完整覆盖，避免了单日仿真对夜间充电过程的人为截断，为有序充电策略的效果评估提供了更为准确的建模基础。
+
+    \noindent\textbf{创新点 2：}
+    在统一的 IEEE 33 节点算例与统一负荷模型下，对确定性、灵敏度和蒙特卡洛三类承载力评估方法进行了系统比较。结果揭示了“灵敏度下界 $<$ 蒙特卡洛 $<$ 确定性均值”的层次关系，阐明了基于均值模板的确定性方法因平滑随机波动而倾向于高估承载力的重要认识，为工程实践中评估方法的选择提供了定量依据。
+
+    \noindent\textbf{创新点 3：}
+    构建考虑电气裕度与空间引导的充电导航策略，并从母线级负荷转移角度解释其提升承载力的机理。导航策略融合距离衰减、电压裕度、负荷拥塞等五个因子进行综合评分，通过将充电负荷从薄弱母线引导至电气条件优越的母线，实现“空间换容量”的效果，在出行链模型下将承载力提升 31\%。
 
     \subsection{论文章节安排}
 
@@ -1191,7 +1202,46 @@
 
     \subsubsection{三种方法对比分析}
 
-    在统一的系统算例（改进 IEEE 33 节点，$\lambda = 1.0$）和负荷模型（出行链模型，无序充电）下，各方法所得承载力结果对比如图 \ref{fig:method_comparison} 所示。图中包含灵敏度法的两种分配假设（最薄弱母线、典型模板）、确定性法和蒙特卡洛法共四种评估配置。
+    为便于结果复现与对比，表 \ref{tab:hc_baseline_conditions} 汇总了本文承载力评估的基准仿真条件。后续各章节结果如无特别说明，均在该基准工况下取得。
+
+    \begin{table}[htbp]
+        \centering
+        \caption{承载力评估基准仿真条件}
+        \label{tab:hc_baseline_conditions}
+        \zihao{5}
+        \setlength{\tabcolsep}{4pt}
+        \renewcommand{\arraystretch}{1.3}
+        \begin{tabularx}{0.998\textwidth}{>{\centering\arraybackslash}p{2.2cm} >{\raggedright\arraybackslash}p{3.1cm} >{\centering\arraybackslash}p{3.1cm} >{\raggedright\arraybackslash}X}
+            \toprule
+            类别 & 参数 & 取值 & 备注 \\
+            \midrule
+            \multirow{3}{*}{测试系统} & 网络拓扑 & 改进 IEEE 33 节点（弱环网） & 闭合 5 条联络线 \\
+             & 额定电压 & 12.66 kV & --- \\
+             & 基础负荷缩放因子 $\lambda$ & 1.0 & 可调，敏感性分析见 4.5 节 \\
+            \midrule
+            \multirow{4}{*}{充电负荷模型} & 负荷模型 & 出行链模型（\texttt{tripchain\_soc}） & 会话模型作对比 \\
+             & 仿真天数 & 2 天（192 个时步） & 多日连续仿真 \\
+             & 时间步长 & 15 min & SOC 内部以 1 min 精度 \\
+             & 充电策略 & 无序充电 & 其他策略见第 4 章 \\
+            \midrule
+            \multirow{4}{*}{电动汽车参数} & 单车充电功率 $P_{ch}$ & 7.2 kW & 可调，敏感性分析见 4.5 节 \\
+             & 电池容量 $C$ & 60 kWh & --- \\
+             & 单位里程能耗 $\omega$ & 0.18 kWh/km & --- \\
+             & 充电效率 $\eta$ & 0.92 & --- \\
+            \midrule
+            \multirow{4}{*}{蒙特卡洛评估} & 场景数 $S$ & 20 & 收敛性验证见 4.6 节 \\
+             & 风险容忍度 $\varepsilon$ & 5\% & --- \\
+             & 全局随机种子 $\text{seed}_{\text{global}}$ & 42 & 公共随机数基种子 \\
+             & 搜索算法 & 指数倍增 + 二分精修 + 边界验证 & 最大迭代 14 轮 \\
+            \midrule
+            \multirow{3}{*}{硬约束阈值} & 电压下限 $V_{\min}$ & 0.95 p.u. & --- \\
+             & 电压上限 $V_{\max}$ & 1.05 p.u. & --- \\
+             & 线路/变压器负载率上限 & 100\% & --- \\
+            \bottomrule
+        \end{tabularx}
+    \end{table}
+
+    在上述统一基准工况下，各方法所得承载力结果对比如图 \ref{fig:method_comparison} 所示。图中包含灵敏度法的两种分配假设（最薄弱母线、典型模板）、确定性法和蒙特卡洛法共四种评估配置。
 
     \begin{figure}[htbp]
         \centering
@@ -1528,7 +1578,7 @@
 
     从图中可以观察到以下收敛特征：在 $S = 5$ 时，3 次独立运行的 $N^*$ 分别为 91、133、108，均值 111 辆，标准差 17.2 辆，结果波动较大。随着 $S$ 增加至 15-20，均值趋于稳定在 105-109 辆范围内，标准差降至 9.4-10.8 辆。在 $S = 50$ 时，3 次运行结果为 99、116、110，均值 108 辆，标准差进一步收敛至 7.0 辆。从 $S = 20$ 到 $S = 50$，均值仅变化约 0.6 辆（109.0 vs 108.3），表明 $S = 20$ 已基本达到收敛。
 
-    需要指出的是，不同随机种子间 $N^*$ 仍存在约 10\% 左右的变异（如 $S = 20$ 时范围为 97-120 辆），这反映了出行链蒙特卡洛抽样的固有随机性，即不同的出行链场景集合代表了用户出行行为的不同实现。本文默认采用 $S = 20$，结合 Wilson 95\% 置信区间的提前终止策略，在评估精度与计算效率之间取得合理折衷。$S = 20$ 的均值（109 辆）与大样本 $S = 50$ 的均值（108 辆）高度一致，验证了本文评估方案的统计可靠性。
+    需要指出的是，不同随机种子间 $N^*$ 仍存在约 10\% 左右的变异（如 $S = 20$ 时范围为 97-120 辆），这反映了出行链蒙特卡洛抽样的固有随机性，即不同的出行链场景集合代表了用户出行行为的不同实现。本文正文报告的基准结果（无序充电 $N^* = 97$ 辆、导航策略 $N^* = 127$ 辆等）均在 $\text{seed}_{\text{global}} = 42$ 下取得。以出行链模型无序充电工况为例，正文所报告的 $N^* = 97$ 辆属于 $S = 20$ 分布中偏保守的一次实现；多次独立运行的均值约为 109 辆，读者在复现时若采用不同随机种子，所得 $N^*$ 将在该均值附近波动。本文默认采用 $S = 20$，结合 Wilson 95\% 置信区间的提前终止策略，在评估精度与计算效率之间取得合理折衷。$S = 20$ 的均值（109 辆）与大样本 $S = 50$ 的均值（108 辆）高度一致，验证了本文评估方案的统计可靠性。
 
     \subsubsection{局限性}
 
