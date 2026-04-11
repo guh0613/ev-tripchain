@@ -132,6 +132,10 @@
 \renewcommand{\cftsecpagefont}{\zihao{-4}\songti}
 \renewcommand{\cftsubsecpagefont}{\zihao{-4}\songti}
 \renewcommand{\cftsubsubsecpagefont}{\zihao{-4}\songti}
+\setlength{\cftsubsecindent}{2em}
+\setlength{\cftsubsubsecindent}{4em}
+\setlength{\cftsubsecnumwidth}{3em}
+\setlength{\cftsubsubsecnumwidth}{4em}
 % 目录标题间距与字体：去除 tocloft 默认 50pt 前置空白，居中显示
 \setlength{\cftbeforetoctitleskip}{0pt}
 \setlength{\cftaftertoctitleskip}{20pt}
@@ -257,7 +261,7 @@
     \newpage
     \markboth{目录}{目录}
     \setcounter{secnumdepth}{3}
-    \setcounter{tocdepth}{2}
+    \setcounter{tocdepth}{3}
 
     \begin{spacing}{1.7}
         \tableofcontents
