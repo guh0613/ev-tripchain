@@ -259,6 +259,8 @@ def choose_spatial_target_bus(
     dynamic_safety_buffer_pu: float = 0.002,
     dynamic_voltage_penalty_window_pu: float = 0.006,
     path_congestion_weight: float = 0.35,
+    softmax_temperature: float = 0.35,
+    disable_voltage_factor: bool = False,
     rng: np.random.Generator,
 ) -> int:
     """
@@ -387,30 +389,32 @@ def choose_spatial_target_bus(
                 ).min(axis=0)
                 combined_margin = np.minimum(system_margin, local_margin)
 
-                keep_mask = np.isfinite(combined_margin)
-                if np.any(combined_margin >= 0.0):
-                    keep_mask &= combined_margin >= 0.0
-                if keep_mask.any() and not keep_mask.all():
-                    ranked_k = ranked_k[keep_mask]
-                    d_k = d_k[keep_mask]
-                    w_dist = w_dist[keep_mask]
-                    w_score = w_score[keep_mask]
-                    w_temporal = w_temporal[keep_mask]
-                    combined_margin = combined_margin[keep_mask]
+                if not disable_voltage_factor:
+                    keep_mask = np.isfinite(combined_margin)
+                    if np.any(combined_margin >= 0.0):
+                        keep_mask &= combined_margin >= 0.0
+                    if keep_mask.any() and not keep_mask.all():
+                        ranked_k = ranked_k[keep_mask]
+                        d_k = d_k[keep_mask]
+                        w_dist = w_dist[keep_mask]
+                        w_score = w_score[keep_mask]
+                        w_temporal = w_temporal[keep_mask]
+                        combined_margin = combined_margin[keep_mask]
                 w_voltage = np.ones(ranked_k.size, dtype=float)
                 w_path = np.ones(ranked_k.size, dtype=float)
 
-                safety_buffer = float(max(dynamic_safety_buffer_pu, 0.0))
-                voltage_window = float(max(dynamic_voltage_penalty_window_pu, 1e-6))
-                w_voltage = _soft_barrier(
-                    combined_margin,
-                    buffer=0.0,
-                    window=voltage_window,
-                ) * _soft_barrier(
-                    combined_margin,
-                    buffer=safety_buffer,
-                    window=voltage_window,
-                )
+                if not disable_voltage_factor:
+                    safety_buffer = float(max(dynamic_safety_buffer_pu, 0.0))
+                    voltage_window = float(max(dynamic_voltage_penalty_window_pu, 1e-6))
+                    w_voltage = _soft_barrier(
+                        combined_margin,
+                        buffer=0.0,
+                        window=voltage_window,
+                    ) * _soft_barrier(
+                        combined_margin,
+                        buffer=safety_buffer,
+                        window=voltage_window,
+                    )
 
                 path_incidence = getattr(voltage_model, "path_incidence", None)
                 line_capacity_mw = getattr(voltage_model, "line_capacity_mw", None)
@@ -487,7 +491,7 @@ def choose_spatial_target_bus(
     if dynamic_context_ready:
         logits = np.log(np.maximum(w, 1e-12))
         logits = logits - float(np.max(logits))
-        scaled = logits / 0.35
+        scaled = logits / float(max(softmax_temperature, 1e-6))
         exp_logits = np.exp(scaled - float(np.max(scaled)))
         p = exp_logits / float(np.sum(exp_logits))
     else:

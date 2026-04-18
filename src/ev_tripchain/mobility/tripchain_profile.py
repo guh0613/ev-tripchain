@@ -235,6 +235,8 @@ def build_ev_profile_mw_tripchain(
     navigation_dynamic_safety_buffer_pu: float = 0.002,
     navigation_dynamic_voltage_penalty_window_pu: float = 0.006,
     navigation_path_congestion_weight: float = 0.35,
+    navigation_softmax_temperature: float = 0.35,
+    navigation_disable_voltage_factor: bool = False,
     bus_distance_m: np.ndarray | None = None,
     candidate_bus_idx: np.ndarray | None = None,
     bus_score: np.ndarray | None = None,
@@ -355,6 +357,8 @@ def build_ev_profile_mw_tripchain(
                         navigation_dynamic_voltage_penalty_window_pu
                     ),
                     path_congestion_weight=navigation_path_congestion_weight,
+                    softmax_temperature=navigation_softmax_temperature,
+                    disable_voltage_factor=navigation_disable_voltage_factor,
                     rng=rng,
                 )
                 if dynamic_context_enabled:

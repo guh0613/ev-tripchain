@@ -197,6 +197,15 @@ class NavigationStrategyConfig(BaseModel):
             "0 disables the feeder-sharing penalty."
         ),
     )
+    softmax_temperature: float = Field(
+        default=0.35,
+        gt=0.0,
+        description="Softmax temperature for dynamic navigation sampling. Lower = more greedy.",
+    )
+    disable_voltage_factor: bool = Field(
+        default=False,
+        description="If True, force w_voltage=1.0 (ablation: isolate voltage factor contribution).",
+    )
 
 
 class StrategyConfig(BaseModel):

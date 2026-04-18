@@ -172,6 +172,8 @@ def build_ev_profile_mw(
             cfg.strategy.navigation.dynamic_voltage_penalty_window_pu
         ),
         navigation_path_congestion_weight=float(cfg.strategy.navigation.path_congestion_weight),
+        navigation_softmax_temperature=float(cfg.strategy.navigation.softmax_temperature),
+        navigation_disable_voltage_factor=bool(cfg.strategy.navigation.disable_voltage_factor),
         bus_distance_m=bus_distance_m,
         candidate_bus_idx=candidate_bus_idx,
         bus_score=bus_score,

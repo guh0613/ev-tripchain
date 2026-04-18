@@ -186,6 +186,12 @@ def build_ev_profile_mw(
                         path_congestion_weight=float(
                             cfg.strategy.navigation.path_congestion_weight
                         ),
+                        softmax_temperature=float(
+                            cfg.strategy.navigation.softmax_temperature
+                        ),
+                        disable_voltage_factor=bool(
+                            cfg.strategy.navigation.disable_voltage_factor
+                        ),
                         rng=rng,
                     )
 
