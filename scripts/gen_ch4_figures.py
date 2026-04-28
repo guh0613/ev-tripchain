@@ -47,6 +47,18 @@ def _save(fig: plt.Figure, name: str) -> Path:
     return path
 
 
+def _set_panel_xlabel(
+    ax: plt.Axes,
+    xlabel: str,
+    panel_caption: str,
+    *,
+    labelpad: float = 8,
+) -> None:
+    """Place the panel label below the x-axis without excessive subplot spacing."""
+    label = f"{xlabel}\n{panel_caption}" if xlabel else panel_caption
+    ax.set_xlabel(label, labelpad=labelpad)
+
+
 def _save_json(data: dict, name: str) -> Path:
     path = OUT_DIR / f"{name}.json"
 
@@ -151,7 +163,7 @@ def gen_fig_4_3(cfg: ProjectConfig) -> dict:
     hours = np.arange(total_unc.shape[0]) * (step_min / 60.0)
     total_hours = hours[-1] + step_min / 60.0
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10.5, 7.5))
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10.5, 7.2))
 
     # Upper panel: full 2-day view
     for arr, label, color, ls in [
@@ -172,9 +184,8 @@ def gen_fig_4_3(cfg: ProjectConfig) -> dict:
 
     ax1.set_xlim(0, total_hours)
     ax1.set_xticks(np.arange(0, total_hours + 1e-9, 4))
-    ax1.set_xlabel("时刻（小时）")
+    _set_panel_xlabel(ax1, "时刻（小时）", "(a) 两日完整充电功率时序")
     ax1.set_ylabel("总充电功率（kW）")
-    ax1.set_title(f"有序充电随机延迟效果对比（出行链模型，{n_vehicles}辆车，2天连续仿真）")
     ax1.legend(loc="upper left", fontsize=9)
     ax1.grid(True, alpha=0.3)
 
@@ -197,11 +208,16 @@ def gen_fig_4_3(cfg: ProjectConfig) -> dict:
     ax2.set_xticks(np.arange(zoom_start, zoom_end + 1e-9, 1))
     xlabels = [f"{int(h % 24):02d}:00" for h in np.arange(zoom_start, zoom_end + 1e-9, 1)]
     ax2.set_xticklabels(xlabels, fontsize=8)
-    ax2.set_xlabel("时刻")
+    _set_panel_xlabel(ax2, "时刻", "(b) 跨午夜充电窗口放大视图")
     ax2.set_ylabel("总充电功率（kW）")
-    ax2.set_title("跨午夜充电窗口放大（22:00—06:00）")
     ax2.legend(loc="upper right", fontsize=9)
     ax2.grid(True, alpha=0.3)
+
+    fig.suptitle(
+        f"有序充电随机延迟效果对比（出行链模型，{n_vehicles}辆车，2天连续仿真）",
+        fontsize=13,
+    )
+    fig.set_constrained_layout_pads(h_pad=0.08, hspace=0.08)
 
     _save(fig, "fig_4_3")
 
@@ -366,7 +382,6 @@ def gen_fig_4_5(cfg: ProjectConfig, n_vehicles: int = 130, seed_offset: int = 20
                label=f"$V_{{\\min}}$ = {vmin} p.u.")
 
     ax.set_ylabel("母线电压（p.u.）")
-    ax.set_title(f"关键时刻全网电压剖面对比（$N = {n_vehicles}$，{time_label}）")
     ax.set_xlim(0.5, len(bus_ids) + 0.5)
     ax.legend(loc="lower left")
     ax.grid(True, alpha=0.3)
@@ -383,7 +398,8 @@ def gen_fig_4_5(cfg: ProjectConfig, n_vehicles: int = 130, seed_offset: int = 20
     bar_colors = [COLORS["success"] if d >= 0 else COLORS["primary"] for d in delta_v]
     ax2.bar(bus_ids, delta_v, color=bar_colors, width=0.7, alpha=0.75)
     ax2.axhline(y=0, color="black", linewidth=0.8)
-    ax2.set_xlabel("母线编号")
+    _set_panel_xlabel(ax, "", "(a) 关键时刻全网电压剖面")
+    _set_panel_xlabel(ax2, "母线编号", "(b) 导航策略电压改善量")
     ax2.set_ylabel("$\\Delta V$ (mpu)")
     ax2.set_xticks(range(1, len(bus_ids) + 1, 2))
     ax2.grid(True, alpha=0.3, axis="y")
@@ -398,6 +414,12 @@ def gen_fig_4_5(cfg: ProjectConfig, n_vehicles: int = 130, seed_offset: int = 20
         fontsize=9, color=COLORS["success"],
         arrowprops=dict(arrowstyle="->", color=COLORS["success"]),
     )
+
+    fig.suptitle(
+        f"关键时刻全网电压剖面对比（$N = {n_vehicles}$，{time_label}）",
+        fontsize=13,
+    )
+    fig.set_constrained_layout_pads(h_pad=0.08, hspace=0.08)
 
     _save(fig, "fig_4_5")
 
@@ -420,6 +442,77 @@ def gen_fig_4_5(cfg: ProjectConfig, n_vehicles: int = 130, seed_offset: int = 20
 
 
 # ── Fig 4-6: Strategy N* comparison (dual model) ────────────────
+
+
+def _plot_fig_4_6(
+    cfg_tc: ProjectConfig,
+    tc_results: dict[str, int],
+    sess_results: dict[str, int],
+) -> None:
+    strategy_labels = {
+        "uncontrolled": "无序\n充电",
+        "ordered_no_delay": "有序\n（无延迟）",
+        "ordered_with_delay": "有序\n（延迟）",
+        "nearest": "就近\n充电",
+        "navigation_static": "导航\n（静态）",
+        "navigation_dynamic": "导航\n（动态）",
+    }
+
+    tc_keys = [
+        "uncontrolled",
+        "ordered_no_delay",
+        "ordered_with_delay",
+        "nearest",
+        "navigation_static",
+        "navigation_dynamic",
+    ]
+    sess_keys = ["uncontrolled", "ordered_no_delay", "ordered_with_delay", "nearest"]
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 6.0), sharey=False)
+
+    # Trip chain model
+    tc_vals = [tc_results[k] for k in tc_keys]
+    tc_colors = [
+        COLORS["uncontrolled"], COLORS["ordered_no_delay"], COLORS["ordered_delay"],
+        COLORS["nearest"], COLORS["navigation_static"], COLORS["navigation_dynamic"],
+    ]
+    bars1 = ax1.bar(
+        [strategy_labels[k] for k in tc_keys], tc_vals,
+        color=tc_colors, edgecolor="white", width=0.6,
+    )
+    ax1.bar_label(bars1, fontsize=10, fontweight="bold", padding=3)
+    ax1.set_ylabel("$N^*$（最大EV数量）")
+    ax1.set_title("出行链模型")
+    ax1.set_ylim(0, max(tc_vals) * 1.25 if tc_vals else 10)
+    ax1.grid(axis="y", alpha=0.3)
+
+    # Session model
+    sess_vals = [sess_results[k] for k in sess_keys]
+    sess_colors = [
+        COLORS["uncontrolled"], COLORS["ordered_no_delay"],
+        COLORS["ordered_delay"], COLORS["nearest"],
+    ]
+    bars2 = ax2.bar(
+        [strategy_labels[k] for k in sess_keys], sess_vals,
+        color=sess_colors, edgecolor="white", width=0.6,
+    )
+    ax2.bar_label(bars2, fontsize=10, fontweight="bold", padding=3)
+    ax2.set_ylabel("$N^*$（最大EV数量）")
+    ax2.set_title("会话模型")
+    ax2.set_ylim(0, max(sess_vals) * 1.25 if sess_vals else 10)
+    ax2.grid(axis="y", alpha=0.3)
+
+    _set_panel_xlabel(ax1, "", "(a) 出行链模型承载力对比", labelpad=12)
+    _set_panel_xlabel(ax2, "", "(b) 会话模型承载力对比", labelpad=12)
+
+    fig.suptitle(
+        f"充电策略承载力对比（改进IEEE 33，$\\lambda$={cfg_tc.case.load_scale}，"
+        f"$P_{{ch}}$={cfg_tc.ev.charge_power_kw} kW）",
+        fontsize=13,
+    )
+    fig.set_constrained_layout_pads(w_pad=0.08, h_pad=0.08, wspace=0.08)
+
+    _save(fig, "fig_4_6")
 
 
 def gen_fig_4_6(cfg_tc: ProjectConfig, cfg_sess: ProjectConfig) -> dict:
@@ -455,60 +548,7 @@ def gen_fig_4_6(cfg_tc: ProjectConfig, cfg_sess: ProjectConfig) -> dict:
     tc_results = _eval_group("tripchain", cfg_tc, tc_strategies)
     sess_results = _eval_group("session", cfg_sess, sess_strategies)
 
-    # Plot
-    strategy_labels = {
-        "uncontrolled": "无序\n充电",
-        "ordered_no_delay": "有序\n（无延迟）",
-        "ordered_with_delay": "有序\n（延迟）",
-        "nearest": "就近\n充电",
-        "navigation_static": "导航\n（静态）",
-        "navigation_dynamic": "导航\n（动态）",
-    }
-
-    tc_keys = list(tc_strategies.keys())
-    sess_keys = list(sess_strategies.keys())
-
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 5.5), sharey=False)
-
-    # Trip chain model
-    tc_vals = [tc_results[k] for k in tc_keys]
-    tc_colors = [
-        COLORS["uncontrolled"], COLORS["ordered_no_delay"], COLORS["ordered_delay"],
-        COLORS["nearest"], COLORS["navigation_static"], COLORS["navigation_dynamic"],
-    ]
-    bars1 = ax1.bar(
-        [strategy_labels[k] for k in tc_keys], tc_vals,
-        color=tc_colors, edgecolor="white", width=0.6,
-    )
-    ax1.bar_label(bars1, fontsize=10, fontweight="bold", padding=3)
-    ax1.set_ylabel("$N^*$（最大EV数量）")
-    ax1.set_title("出行链模型")
-    ax1.set_ylim(0, max(tc_vals) * 1.25 if tc_vals else 10)
-    ax1.grid(axis="y", alpha=0.3)
-
-    # Session model
-    sess_vals = [sess_results[k] for k in sess_keys]
-    sess_colors = [
-        COLORS["uncontrolled"], COLORS["ordered_no_delay"],
-        COLORS["ordered_delay"], COLORS["nearest"],
-    ]
-    bars2 = ax2.bar(
-        [strategy_labels[k] for k in sess_keys], sess_vals,
-        color=sess_colors, edgecolor="white", width=0.6,
-    )
-    ax2.bar_label(bars2, fontsize=10, fontweight="bold", padding=3)
-    ax2.set_ylabel("$N^*$（最大EV数量）")
-    ax2.set_title("会话模型")
-    ax2.set_ylim(0, max(sess_vals) * 1.25 if sess_vals else 10)
-    ax2.grid(axis="y", alpha=0.3)
-
-    fig.suptitle(
-        f"充电策略承载力对比（改进IEEE 33，$\\lambda$={cfg_tc.case.load_scale}，"
-        f"$P_{{ch}}$={cfg_tc.ev.charge_power_kw} kW）",
-        fontsize=13,
-    )
-
-    _save(fig, "fig_4_6")
+    _plot_fig_4_6(cfg_tc, tc_results, sess_results)
 
     data = {"tc_results": tc_results, "sess_results": sess_results}
     _save_json(data, "fig_4_6_data")

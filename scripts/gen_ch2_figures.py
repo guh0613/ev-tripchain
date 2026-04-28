@@ -58,6 +58,18 @@ def _save(fig: Figure, outdir: Path, name: str) -> Path:
     return path
 
 
+def _set_panel_xlabel(
+    ax: plt.Axes,
+    xlabel: str,
+    panel_caption: str,
+    *,
+    labelpad: float = 8,
+) -> None:
+    """Place the panel label below the x-axis without excessive subplot spacing."""
+    label = f"{xlabel}\n{panel_caption}" if xlabel else panel_caption
+    ax.set_xlabel(label, labelpad=labelpad)
+
+
 def _load_tripchain_cfg(path: str = "configs/tripchain_soc.yaml"):
     from ev_tripchain.config import load_config
 
@@ -260,13 +272,18 @@ def fig_2_2_distributions() -> Figure:
         # count "other" stops
         n_other[i] = sum(1 for s in tc.stops if s.purpose == "other")
 
-    fig, axes = plt.subplots(2, 2, figsize=(11, 8))
+    fig, axes = plt.subplots(2, 2, figsize=(11, 8.2))
+    panel_captions = [
+        "(a) 首次出发时间分布",
+        "(b) 日行驶里程分布",
+        "(c) 工作驻留时长分布",
+        "(d) 中间停靠次数分布",
+    ]
 
     ax = axes[0, 0]
     ax.hist(dep_hours, bins=48, density=True, color=COLORS["primary"], alpha=0.85, edgecolor="white", linewidth=0.3)
-    ax.set_xlabel("首次出发时间（小时）")
+    _set_panel_xlabel(ax, "首次出发时间（小时）", panel_captions[0])
     ax.set_ylabel("概率密度")
-    ax.set_title("(a) 首次出发时间分布")
     ax.set_xlim(0, 24)
     ax.set_xticks(np.arange(0, 25, 4))
     ax.axvline(x=7.5, color=COLORS["secondary"], linestyle="--", linewidth=1, alpha=0.8, label="$\\mu_t$=7:30")
@@ -274,9 +291,8 @@ def fig_2_2_distributions() -> Figure:
 
     ax = axes[0, 1]
     ax.hist(daily_km, bins=60, density=True, color=COLORS["warning"], alpha=0.85, edgecolor="white", linewidth=0.3)
-    ax.set_xlabel("日行驶里程（km）")
+    _set_panel_xlabel(ax, "日行驶里程（km）", panel_captions[1])
     ax.set_ylabel("概率密度")
-    ax.set_title("(b) 日行驶里程分布")
     ax.set_xlim(0, min(120, np.percentile(daily_km, 99.5)))
     median_km = np.median(daily_km)
     ax.axvline(x=median_km, color=COLORS["secondary"], linestyle="--", linewidth=1, alpha=0.8, label=f"中位数={median_km:.1f}km")
@@ -284,9 +300,8 @@ def fig_2_2_distributions() -> Figure:
 
     ax = axes[1, 0]
     ax.hist(work_dur, bins=50, density=True, color=COLORS["success"], alpha=0.85, edgecolor="white", linewidth=0.3)
-    ax.set_xlabel("工作驻留时长（小时）")
+    _set_panel_xlabel(ax, "工作驻留时长（小时）", panel_captions[2])
     ax.set_ylabel("概率密度")
-    ax.set_title("(c) 工作驻留时长分布")
     ax.set_xlim(0, min(16, np.percentile(work_dur, 99.5)))
     ax.axvline(x=520/60, color=COLORS["secondary"], linestyle="--", linewidth=1, alpha=0.8, label="$\\mu_w$=8.67h")
     ax.legend(fontsize=9)
@@ -295,15 +310,15 @@ def fig_2_2_distributions() -> Figure:
     max_stops = int(n_other.max())
     bins_edge = np.arange(-0.5, max_stops + 1.5, 1)
     ax.hist(n_other, bins=bins_edge, density=True, color=COLORS["purple"], alpha=0.85, edgecolor="white", linewidth=0.5)
-    ax.set_xlabel("中间停靠次数")
+    _set_panel_xlabel(ax, "中间停靠次数", panel_captions[3])
     ax.set_ylabel("概率")
-    ax.set_title("(d) 中间停靠次数分布")
     ax.set_xticks(range(0, min(max_stops + 1, 8)))
     mean_stops = n_other.mean()
     ax.axvline(x=mean_stops, color=COLORS["secondary"], linestyle="--", linewidth=1, alpha=0.8, label=f"$\\bar{{n}}$={mean_stops:.2f}")
     ax.legend(fontsize=9)
 
-    fig.suptitle(f"出行链关键参数概率分布（{n_samples}辆车采样）", fontsize=14, y=1.01)
+    fig.suptitle(f"出行链关键参数概率分布（{n_samples}辆车采样）", fontsize=14)
+    fig.set_constrained_layout_pads(h_pad=0.08, hspace=0.08)
     return fig
 
 
@@ -455,7 +470,7 @@ def fig_2_4_soc_evolution() -> Figure:
     hours = np.arange(n_steps + 1) * (step_min / 60.0)
     total_hours = float(hours[-1])
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(11, 6), gridspec_kw={"height_ratios": [2, 1]})
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(11, 6.2), gridspec_kw={"height_ratios": [2, 1]})
 
     # Upper: SOC curve
     ax1.plot(hours, soc, color=COLORS["primary"], linewidth=2.2, label="SOC")
@@ -464,7 +479,6 @@ def fig_2_4_soc_evolution() -> Figure:
     ax1.set_xlim(0, total_hours)
     ax1.set_xticks(np.arange(0, total_hours + 1, 4))
     ax1.axhline(y=0.3, color=COLORS["secondary"], linestyle="--", linewidth=1, alpha=0.6, label="充电触发阈值 r=0.3")
-    ax1.set_title("典型单车SOC演化曲线（2天连续仿真）")
     ax1.grid(True, alpha=0.2)
 
     # Shade charging periods on SOC plot
@@ -524,11 +538,15 @@ def fig_2_4_soc_evolution() -> Figure:
     step_hours = np.arange(len(p_kw)) * (step_min / 60.0)
     ax2.fill_between(step_hours, 0, p_kw, color=COLORS["charge"], alpha=0.7, step="mid")
     ax2.set_ylabel("充电功率（kW）")
-    ax2.set_xlabel("时刻（小时）")
+    _set_panel_xlabel(ax1, "", "(a) SOC演化曲线", labelpad=8)
+    _set_panel_xlabel(ax2, "时刻（小时）", "(b) 充电功率曲线", labelpad=8)
     ax2.set_xlim(0, total_hours)
     ax2.set_xticks(np.arange(0, total_hours + 1, 4))
     ax2.set_ylim(0, max(p_kw.max() * 1.15, 1))
     ax2.grid(True, alpha=0.2)
+
+    fig.suptitle("典型单车SOC演化曲线（2天连续仿真）", fontsize=14)
+    fig.set_constrained_layout_pads(h_pad=0.08, hspace=0.08)
 
     return fig
 

@@ -13,7 +13,7 @@
 
 \usepackage{afterpage}
 \usepackage{diagbox}
-\usepackage[UTF8,heading = true]{ctex}
+\usepackage[UTF8,heading = true,fontset=none]{ctex}
 \usepackage{amsmath,amssymb,amsfonts,mathrsfs}
 \usepackage{graphicx}
 \usepackage{ulem}
@@ -68,6 +68,8 @@
         BoldFont = * W6
     ]{Hiragino Sans GB}
 }
+\providecommand{\songti}{}
+\providecommand{\heiti}{}
 \renewcommand{\songti}{\thesissong}
 \renewcommand{\heiti}{\thesishei}
 \usepackage{setspace}
@@ -274,8 +276,6 @@
     \frontmattergeometry
     \pagenumbering{Roman}
     \setcounter{page}{1}
-    \renewcommand{\thesubfigure}{\empty}
-
     \markboth{摘要}{摘要}
     \phantomsection
     \addcontentsline{toc}{section}{摘要}
@@ -813,23 +813,20 @@
 
     基于上述模型，本节对大规模电动汽车聚合充电负荷的时序特性和空间分布特性进行分析。
 
-    \begin{figure}[htbp]
+    \begin{figure}[H]
         \centering
-        \includegraphics[width=0.86\textwidth]{fig_2_6.png}
+        \includegraphics[width=0.80\textwidth]{fig_2_6.png}
         \caption{大规模 EV 聚合充电负荷时序曲线（$N = 1500$，扩展仿真截取中间 48 h）}
         \label{fig:aggregate_load_curve}
+        \vspace{20pt}
+        \includegraphics[width=0.80\textwidth]{fig_2_7.png}
+        \caption{两种充电负荷模型对比（$N = 1000$，中间 48 h 窗口）}
+        \label{fig:model_comparison}
     \end{figure}
 
     图 \ref{fig:aggregate_load_curve} 展示了出行链模型无序充电模式下的聚合充电负荷时序曲线。可以看出，充电负荷呈现出明显的时间规律性：由于大部分车辆在工作日下班后归家启动充电，负荷峰值主要出现在 18:00—24:00 时段，与居民用电晚高峰高度重合，形成“峰上加峰”效应。
 
     进一步将出行链模型与会话式模型的充电负荷进行对比，如图 \ref{fig:model_comparison} 所示。
-
-    \begin{figure}[htbp]
-        \centering
-        \includegraphics[width=0.86\textwidth]{fig_2_7.png}
-        \caption{两种充电负荷模型对比（$N = 1000$，中间 48 h 窗口）}
-        \label{fig:model_comparison}
-    \end{figure}
 
     出行链模型与会话式模型生成的聚合充电负荷存在显著差异。出行链模型由于刻画了日内多次出行的时空分散性，部分车辆在工作地点或中间停靠点即触发充电，使得充电负荷在时间上更为分散，峰值功率相对较低；会话式模型的充电事件在时间上更为集中，峰值功率更高。从承载力评估的角度看，负荷的时间分散性有利于降低峰值功率对配电网的冲击，因此出行链模型下的承载力通常高于会话式模型，这一差异将在第 4 章中进行定量分析。
 
@@ -955,14 +952,12 @@
 
     改进算例的关键参数汇总于表 \ref{tab:modified_ieee33_params}。
 
-    \begin{table}[htbp]
+    \begin{table}[!htbp]
         \centering
         \caption{IEEE 33 节点改进算例关键参数}
         \label{tab:modified_ieee33_params}
-        \zihao{5}
         \setlength{\tabcolsep}{4pt}
-        \renewcommand{\arraystretch}{1.3}
-        \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.8cm} >{\centering\arraybackslash}p{2.2cm} >{\centering\arraybackslash}p{2.5cm} >{\raggedright\arraybackslash}X}
+        \begin{tabularx}{\textwidth}{>{\centering\arraybackslash}p{2.8cm} >{\centering\arraybackslash}p{2.2cm} >{\centering\arraybackslash}p{2.5cm} >{\centering\arraybackslash}X}
             \toprule
             项目 & 标准值 & 改进值 & 备注 \\
             \midrule
@@ -1105,13 +1100,13 @@
 
     \begin{figure}[htbp]
         \centering
-        \subfigure[（a）三阶段自适应二分搜索流程]{
+        \subfigure[三阶段自适应二分搜索流程]{
             \includegraphics[width=0.62\textwidth]{fig3_4_p1.png}
         }
 
         \vspace{0.4em}
 
-        \subfigure[（b）单次 $\hat{\pi}(N)$ 评估流程]{
+        \subfigure[单次 $\hat{\pi}(N)$ 评估流程]{
             \includegraphics[width=0.62\textwidth]{fig3_4_p2.png}
         }
         \caption{自适应二分搜索算法流程图}
@@ -1498,14 +1493,12 @@
 
     为量化五个评分因子各自对承载力的边际贡献，本节采用逐步消融的方式，在出行链模型下对比不同因子组合的承载力结果。消融实验保持其余参数与基准设定一致（$\lambda = 1.0$、$P_{ch} = 7.2$ kW、$S = 20$ 个场景、$\text{seed} = 42$），仅改变导航策略的因子配置或参数取值。
 
-    \begin{table}[htbp]
+    \begin{table}[H]
         \centering
         \caption{导航因子消融分析结果}
         \label{tab:navigation_ablation}
-        \zihao{5}
         \setlength{\tabcolsep}{4pt}
-        \renewcommand{\arraystretch}{1.3}
-        \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.8cm} >{\raggedright\arraybackslash}X >{\centering\arraybackslash}p{1.2cm} >{\centering\arraybackslash}p{1.9cm}}
+        \begin{tabularx}{\textwidth}{>{\centering\arraybackslash}p{3.6cm} >{\centering\arraybackslash}X >{\centering\arraybackslash}p{1.0cm} >{\centering\arraybackslash}p{1.7cm}}
             \toprule
             配置 & 启用因子 & $N^*$ & 相对无序提升 \\
             \midrule
