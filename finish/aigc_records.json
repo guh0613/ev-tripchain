@@ -1,0 +1,69 @@
+{
+  "docs/thesis/论文初稿.md": {
+    "origin_path": "docs/thesis/论文初稿.md",
+    "rounds": [
+      {
+        "round": 1,
+        "prompt": "prompts/baibaiAIGC1.md",
+        "input_path": "docs/thesis/论文初稿.md",
+        "output_path": "finish/intermediate/论文初稿_round1.txt",
+        "chunk_limit": 850,
+        "input_segment_count": 27,
+        "output_segment_count": 27,
+        "manifest_path": "finish/intermediate/论文初稿_round1_manifest.json",
+        "scope": "摘要 + 第1章（绪论）",
+        "score_total": 36,
+        "timestamp": "2026-04-30T00:00:00Z"
+      },
+      {
+        "round": 2,
+        "prompt": "prompts/baibaiAIGC2.md",
+        "input_path": "finish/intermediate/论文初稿_round1.txt",
+        "output_path": "finish/intermediate/论文初稿_round2.txt",
+        "chunk_limit": 850,
+        "input_segment_count": 27,
+        "output_segment_count": 27,
+        "manifest_path": "finish/intermediate/论文初稿_round2_manifest.json",
+        "scope": "摘要（中文）+ 英文Abstract（首轮英文处理）+ 第1章（绪论）",
+        "score_total": 43,
+        "timestamp": "2026-04-30T08:00:00Z"
+      }
+    ]
+  },
+  "docs/thesis/论文初稿.md#第5章": {
+    "origin_path": "docs/thesis/论文初稿.md#第5章",
+    "rounds": [
+      {
+        "round": 1,
+        "prompt": "prompts/baibaiAIGC1.md",
+        "input_path": "docs/thesis/论文初稿.md",
+        "output_path": "finish/intermediate/论文初稿_第5章_round1.txt",
+        "chunk_limit": 850,
+        "input_segment_count": 17,
+        "output_segment_count": 17,
+        "manifest_path": "finish/intermediate/论文初稿_第5章_round1_manifest.json",
+        "scope": "第5章（结论与展望）",
+        "score_total": 61,
+        "timestamp": "2026-04-29T17:02:16Z"
+      }
+    ]
+  },
+  "docs/thesis/论文初稿.md#第2章": {
+    "origin_path": "docs/thesis/论文初稿.md#第2章",
+    "rounds": [
+      {
+        "round": 1,
+        "prompt": "prompts/baibaiAIGC1.md",
+        "input_path": "docs/thesis/论文初稿.md",
+        "output_path": "finish/intermediate/论文初稿_第2章_round1.txt",
+        "chunk_limit": 850,
+        "input_segment_count": 46,
+        "output_segment_count": 46,
+        "manifest_path": "finish/intermediate/论文初稿_第2章_round1_manifest.json",
+        "scope": "第2章（电动汽车充电负荷时空建模）",
+        "score_total": 61,
+        "timestamp": "2026-04-30T01:14:43+08:00"
+      }
+    ]
+  }
+}
