@@ -65,5 +65,24 @@
         "timestamp": "2026-04-30T01:14:43+08:00"
       }
     ]
+  },
+  "docs/thesis/论文初稿.md#第3章": {
+    "origin_path": "docs/thesis/论文初稿.md#第3章",
+    "rounds": [
+      {
+        "round": 1,
+        "prompt": "prompts/baibaiAIGC1.md",
+        "prompt_profile": "cn",
+        "input_path": "docs/thesis/论文初稿.md",
+        "output_path": "finish/intermediate/论文初稿_第3章_round1.txt",
+        "chunk_limit": 850,
+        "input_segment_count": 147,
+        "output_segment_count": 147,
+        "manifest_path": "finish/intermediate/论文初稿_第3章_round1_manifest.json",
+        "scope": "第3章（配电网承载力概率评估方法）",
+        "score_total": 61,
+        "timestamp": "2026-04-30T01:30:44+08:00"
+      }
+    ]
   }
 }
