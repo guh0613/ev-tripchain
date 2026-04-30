@@ -198,6 +198,7 @@
     urlcolor=black,
 }
 
+\raggedbottom
 \setlength{\parindent}{2em}
 \setlength{\parskip}{0pt}
 \setlength{\headheight}{17pt}
@@ -485,13 +486,11 @@
 
     出行链方法把电动汽车一天内的活动描述为“出行—驻留”交替出现的完整序列，可以在同一建模框架下表示用户从早间离家到夜间返家的全过程。相较于只考虑单次充电事件的统计概率法，出行链方法的主要优势在于保留了日内多次出行所带来的时间分散和空间迁移特征，因此得到的充电负荷在时间分布和空间定位上更接近实际情况\supercite{ref9}。
 
-    本文参考陈丽丹等\supercite{ref9}和李含玉等\supercite{ref10}的建模框架，将电动汽车日内活动划分为家庭停留、工作停留以及其他活动停留三类，分别记为 H、W、O。其中，“其他活动”主要包括购物、餐饮、社交等短时驻留行为。日内出行链的基本结构为：
-
+    本文参考陈丽丹等\supercite{ref9}和李含玉等\supercite{ref10}的建模框架，将电动汽车日内活动划分为家庭停留、工作停留以及其他活动停留三类，分别记为 H、W、O。其中，”其他活动”主要包括购物、餐饮、社交等短时驻留行为。日内出行链的基本结构为：
     \begin{equation}
     \label{eq:tripchain_structure}
     \text{H} \xrightarrow{\text{通勤}} \text{W} \xrightarrow{\text{出行}_1} \text{O}_1 \xrightarrow{\text{出行}_2} \text{O}_2 \cdots \xrightarrow{\text{返程}} \text{H}
     \end{equation}
-
     其中，车辆通常在早间从家庭出发并通勤至工作地点，工作结束后可能经过若干中间停靠点，如购物、餐饮等场所，最后返回家庭。每一次出行都构成一条行程段（leg），这些连续行程段与各停留环节共同组成完整的日内出行链。
 
     每条出行链的生成需要涉及若干随机变量，包括首次出发时刻 $t_{\text{dep}}$、各行程段行驶距离 $d_i$（$i=1,2,\ldots,n_{\text{leg}}$）、工作驻留时长 $\tau_{\text{work}}$、中间停靠次数 $n_{\text{other}}$ 以及各中间停靠驻留时长 $\tau_{\text{other},j}$（$j=1,2,\ldots,n_{\text{other}}$）。上述变量均按照相应概率分布独立采样，并施加时间顺序约束，以保证出行链在时间轴上具有逻辑一致性，也就是前一环节的离开时刻不能晚于后一环节的到达时刻。
@@ -504,12 +503,10 @@
     \end{figure}
 
     出行链中的每个驻留环节可以形式化定义为一个停靠点（Stop），其属性包括所在区域编号 $z$、到达时刻 $t_{\text{arr}}$、离开时刻 $t_{\text{dep}}$ 和活动目的 $p$（取值为 home、work 或 other）。相邻停靠点之间的行程段则具有行驶距离属性 $d$。一条完整出行链可以表示为停靠点的有序序列：
-
     \begin{equation}
     \label{eq:tripchain_formal}
     \mathcal{C} = \{(z_0, t_{\text{arr},0}, t_{\text{dep},0}, p_0),\ (z_1, t_{\text{arr},1}, t_{\text{dep},1}, p_1),\ \ldots,\ (z_m, t_{\text{arr},m}, t_{\text{dep},m}, p_m)\}
     \end{equation}
-
     其中 $m$ 表示停靠点总数，并需要满足 $t_{\text{dep},i} \leq t_{\text{arr},i+1}$（$i=0,1,\ldots,m-1$），即时间单调递增约束。
 
     \subsubsection{关键参数的概率分布}
@@ -517,64 +514,50 @@
     出行链各环节中的随机变量需要用合理的概率分布加以描述。本文结合国内外出行调查数据以及已有文献中的校准结果，对相关参数分布作如下设定。
 
     首次出发时刻 $t_{\text{dep}}$ 主要反映通勤出行的早间规律，本文采用正态分布进行描述：
-
     \begin{equation}
     \label{eq:dep_time_dist}
     t_{\text{dep}} \sim \mathcal{N}(\mu_t,\ \sigma_t^2)
     \end{equation}
-
     其中 $\mu_t$ 为均值，对应通勤早高峰的中心时刻，$\sigma_t$ 为标准差，用来反映出发时间的离散程度。本文取 $\mu_t = 7\text{:}30$，也就是 450 分钟，$\sigma_t = 35$ 分钟。均值的选取参考了罗卓伟等\supercite{ref8}对私家车上班出发高峰时段 7:00—9:00 的统计结果，并取该时段的中心时刻。标准差则参考李含玉等\supercite{ref10}给出的出行链 H-W-H 起始时刻标准差 $\sigma_{\text{H-W}}$ 约为 0.5 小时（30 分钟）的结果，在此基础上适当放宽到 35 分钟，以覆盖更宽的通勤出发时间差异。对采样结果施加 $[0, 1440)$ 分钟的截断约束，用来保证时间取值的物理合理性。
 
     各行程段的行驶距离 $d$ 采用对数正态分布描述：
-
     \begin{equation}
     \label{eq:dist_lognormal}
     d \sim \text{LogNormal}(\mu_d,\ \sigma_d^2)
     \end{equation}
-
     选择对数正态分布的原因在于，行驶距离始终为正值且通常呈现右偏分布：大多数出行距离较短，少量长距离出行会拉高分布尾部。这一特征与田立亭等\supercite{ref7}基于 NHTS 数据得到的统计结论一致。本文运用矩匹配方法，把原始尺度下的均值和标准差转换为对数尺度参数。设原始尺度均值为 $\bar{d}$、标准差为 $s_d$，则对数尺度参数为：
-
     \begin{equation}
     \label{eq:lognormal_params}
     \mu_d = \ln\frac{\bar{d}^2}{\sqrt{s_d^2 + \bar{d}^2}}, \quad \sigma_d = \sqrt{\ln\left(1 + \frac{s_d^2}{\bar{d}^2}\right)}
     \end{equation}
-
     本文取 $\bar{d} = 20$ km、$s_d = 10$ km，对应单程通勤距离的典型水平。
 
     在驻留时间方面，工作驻留时长 $\tau_{\text{work}}$ 采用截断正态分布描述：
-
     \begin{equation}
     \label{eq:work_duration_dist}
     \tau_{\text{work}} \sim \mathcal{N}(\mu_w,\ \sigma_w^2), \quad \tau_{\text{work}} \geq 0
     \end{equation}
-
     本文取 $\mu_w = 520$ 分钟，即约 8 小时 40 分钟，$\sigma_w = 45$ 分钟。该参数设定综合参考了工作区长时驻留特征和典型工作日制度。Wang 等\supercite{ref11}指出，除居家夜间停车之外，工作场所是平均驻留时间最长的停车地点；侯佳欣\supercite{ref15}则采用广义极值分布拟合工作商务区停留时长。基于这些研究，本文把 520 分钟（8 小时 40 分钟）作为典型工作日驻留的工程代表值，并在标准 8 小时工作制基础上保留一定弹性，以覆盖午休、加班和弹性作息带来的额外驻留时间。标准差 45 分钟则反映不同岗位和工作制度下工作时长的合理波动。
 
     工作结束后的中间停靠次数 $n_{\text{other}}$ 采用泊松分布描述：
-
     \begin{equation}
     \label{eq:other_stops_dist}
     n_{\text{other}} \sim \text{Poisson}(\lambda_{\text{other}})
     \end{equation}
-
     本文取 $\lambda_{\text{other}} = 1.0$，即车辆每日平均发生一次中间停靠。该参数主要结合陈丽丹等\supercite{ref9}给出的日均出行链长度，也就是平均 3.02 段行程，以及典型私家车日内活动模式进行设定。
 
     中间停靠的驻留时长 $\tau_{\text{other}}$ 采用截断正态分布描述：
-
     \begin{equation}
     \label{eq:other_duration_dist}
     \tau_{\text{other}} \sim \mathcal{N}(\mu_o,\ \sigma_o^2), \quad \tau_{\text{other}} \geq 0
     \end{equation}
-
     本文取 $\mu_o = 50$ 分钟、$\sigma_o = 25$ 分钟。该取值参考了相关文献中的停车时长数据：罗卓伟等\supercite{ref8}对北京海淀区商场和超市停车行为开展实地调研，得到私家车平均停车时间为 79.78 分钟；Wang 等\supercite{ref11}基于 NHTS 数据统计得到“其他”场所平均停车时长为 1.47 小时，约 88 分钟。这些调研数据主要对应商场、超市等具有明确消费目的的停靠场所，停留时间相对较长。本文建模中的中间停靠更强调通勤途中的短暂经停，如接送儿童、加油和快餐等，其停留时间通常短于购物类活动，因此取均值 50 分钟、标准差 25 分钟，位于上述文献范围的下半段。
 
     此外，各行程段的行驶时间由行驶距离和平均行驶速度换算得到：
-
     \begin{equation}
     \label{eq:travel_time}
     \tau_{\text{travel},i} = d_i \cdot \alpha
     \end{equation}
-
     其中 $\alpha$ 为单位里程行驶时间（分钟/km），本文取 $\alpha = 1.8$ 分钟/km，对应约 33 km/h 的城市综合平均车速。侯佳欣\supercite{ref15}给出的城市道路正常通行速度为 30—50 km/h（一级道路）和 20—40 km/h（二级道路），本文所取 33 km/h 处在上述范围的中下段，可以反映城市工况下路口信号灯和拥堵延迟共同作用后的综合行驶速度。
 
     \begin{figure}[htbp]
@@ -636,39 +619,31 @@
     电动汽车的荷电状态（State of Charge, SOC）在日内出行过程中会经历“行驶消耗—停靠充电”交替变化。本文以 1 分钟为时间分辨率模拟 SOC 的逐分钟变化，再聚合到 15 分钟时步，输出充电功率时序。
 
     车辆在行程段 $i$ 行驶时产生的电能消耗 $\Delta E_{\text{drive},i}$ 为：
-
     \begin{equation}
     \label{eq:energy_drive}
     \Delta E_{\text{drive},i} = \omega \cdot d_i
     \end{equation}
-
     其中 $\omega$ 为单位里程能耗（kWh/km），$d_i$ 为行程段 $i$ 的行驶距离（km）。本文取 $\omega = 0.18$ kWh/km，该数值位于陈丽丹等\supercite{ref9}给出的每公里耗电量常见范围 0.15—0.30 kWh/km 之内，也与李含玉等\supercite{ref10}仿真中晚高峰时段的取值保持一致。在仿真实现中，行驶耗电被均匀分摊到行程段的起止时间内扣除。
 
     在充电补能阶段，车辆在停靠点充电时电池储能逐分钟增加：
-
     \begin{equation}
     \label{eq:energy_charge}
     E_{t+1} = E_t + \eta \cdot P_{\text{ch}} \cdot \Delta t
     \end{equation}
-
     其中 $E_t$ 为 $t$ 时刻电池储能（kWh），$\eta$ 为充电效率，$P_{\text{ch}}$ 为充电功率（kW），$\Delta t = 1/60$ 小时（1 分钟）。充电过程持续到电池充满（$E = C$，$C$ 为电池额定容量）或车辆离开停靠点，两者中先发生者作为终止条件。
 
     综合行驶消耗与充电补能两个过程，SOC 的离散递推方程为：
-
     \begin{equation}
     \label{eq:soc_recursion}
     \text{SOC}_{t+1} = \text{clip}\left(\frac{E_{t+1}}{C},\ \text{SOC}_{\min},\ \text{SOC}_{\max}\right)
     \end{equation}
-
     其中 $\text{SOC}_{\min} = 0$、$\text{SOC}_{\max} = 1$，$\text{clip}(\cdot)$ 函数用于把 SOC 限制在合理范围内。每个 15 分钟时步结束时记录 SOC 值，从而形成 SOC 时序曲线。
 
     在电网侧，不考虑充电效率损耗，充电功率取恒定值 $P_{\text{ch}}$，并在每个 15 分钟时步内按照实际充电分钟数占比进行平均：
-
     \begin{equation}
     \label{eq:avg_power}
     \bar{P}_k = P_{\text{ch}} \cdot \frac{n_{\text{charge},k}}{\Delta T}
     \end{equation}
-
     其中 $\bar{P}_k$ 为第 $k$ 个时步的平均充电功率，$n_{\text{charge},k}$ 为该时步内实际充电分钟数，$\Delta T$ 为时步长度，即 15 分钟。
 
     \subsubsection{充电触发判据}
@@ -676,12 +651,10 @@
     充电触发判据用于决定车辆到达某个停靠点后是否开始充电。本文采用“下一程能量储备”判据，其设计参考了陈丽丹等\supercite{ref9}提出的充电条件判断方法，以及李含玉等\supercite{ref10}给出的改进方案。
 
     车辆到达停靠点 $n$ 时，如果剩余电量不足以完成下一段行程并保留安全储备，则触发充电：
-
     \begin{equation}
     \label{eq:charge_trigger}
     E_n - \omega \cdot d_{n+1} < r \cdot C
     \end{equation}
-
     其中 $E_n$ 为到达停靠点 $n$ 时的电池储能（kWh），$d_{n+1}$ 为下一段行程的行驶距离（km），$r$ 为安全储备系数，$C$ 为电池额定容量（kWh）。本文取 $r = 0.3$，即要求完成下一段行程后 SOC 不低于 30\%。该阈值与陈丽丹等\supercite{ref9}给出的 30\% SOC 安全裕度一致。
 
     这一判据不同于传统的简单 SOC 阈值判据。后者只根据当前 SOC 水平判断是否充电，例如 SOC 低于 30\% 便触发充电，而不考虑后续行程的能量需求。“下一程能量储备”判据的优势在于具有一定前瞻性：当下一段行程较短时，即便当前 SOC 偏低，也可能无需马上充电；当下一段行程较长时，即便当前 SOC 较高，也可能需要提前补能。这样的判断方式更能反映驾驶员在实际使用中的充电决策行为\supercite{ref9,ref10}。
@@ -693,7 +666,6 @@
     首先定义当日末次家庭停靠：如果停靠点目的为“家庭”，且该停靠点是出行链中的最后一个停靠点，或该停靠点停留时间跨越日边界，即到达日期与离开日期不同，则认定该停靠点为当日末次家庭停靠。
 
     其次，引入时间依赖的参与概率函数 $\rho(t)$，用来刻画车主是否触发补充充电的意愿：
-
     \begin{equation}
     \label{eq:participation_prob}
     \rho(t) =
@@ -703,7 +675,6 @@
         1.0, & 22\text{:}00 \leq t \text{ 或 } t < 06\text{:}00
     \end{cases}
     \end{equation}
-
     该概率函数的设计依据是：罗卓伟等\supercite{ref8}给出的私家车居家停车充电时段主要集中在 19:00—7:00，而邢强等\supercite{ref21}在城市交通时段划分中把 17:00—19:00 视为晚高峰，因此本文把 17:00 作为日终返家行为开始明显增加的分界点。17:00 之前的家庭停留通常属于午间临时返家，不宜视为日终充电，因此 $\rho(t) = 0$；17:00 至 22:00 期间返家的车辆，其触发补充充电的意愿随着到达时间推迟而增强，从 10\% 线性增加到 100\%，用来反映越晚到家、次日出行前可自然充电时间越短、车主主动插枪意愿越强的行为逻辑；22:00 之后及次日凌晨 06:00 之前到达的车辆，均被视为日终停靠，并以概率 1 触发充电。分段节点 17:00 和 22:00 分别对应晚高峰起始和夜间低谷起始，也与有序充电窗口（22:00—06:00）的时间节点保持一致。
 
     当末次居家补充充电被触发时，充电目标 SOC 设为 $\text{SOC}_{\text{home}} = 0.9$，低于充满状态 1.0，用来反映实际场景中车主“充至八九成即可”的用车习惯。完整的充电规则为：如果“下一程能量储备”判据已经触发，则充电目标取 $\text{SOC}_{\max}$，也就是充满；如果仅末次居家补充规则触发，并由概率 $\rho(t)$ 采样决定，则充电目标取 $\text{SOC}_{\text{home}}$。两条判据取并集，以避免遗漏不同类型的充电需求。
@@ -711,12 +682,10 @@
     该规则的引入使模型更接近实际充电行为。在傍晚至夜间高峰时段，大量车辆即使 SOC 仍较充裕，也可能触发家庭充电，从而形成更真实的晚高峰充电负荷；而在非高峰时段返家的车辆则以较低概率充电，体现不同用户行为之间的差异。
 
     当充电被触发时，从当前 SOC 达到目标 SOC 所需的充电时长为：
-
     \begin{equation}
     \label{eq:charge_duration}
     T_{\text{charge}} = \left\lceil\frac{(\text{SOC}_{\text{target}} - \text{SOC}_{\text{arr}}) \cdot C}{\eta \cdot P_{\text{ch}}} \times 60\right\rceil \text{（分钟）}
     \end{equation}
-
     其中 $\text{SOC}_{\text{arr}}$ 为到达时 SOC，$\text{SOC}_{\text{target}}$ 为充电目标 SOC（由“下一程能量储备”判据触发时取 $\text{SOC}_{\max} = 1$，由“末次居家补充”规则触发时取 $\text{SOC}_{\text{home}} = 0.9$），$\lceil\cdot\rceil$ 表示向上取整。实际充电时长为 $\min(T_{\text{charge}},\ t_{\text{dep}} - t_{\text{arr}})$，即不超过停靠时间窗。
 
     \begin{figure}[htbp]
@@ -731,12 +700,10 @@
     本文的仿真对象为典型私家车型电动汽车，电池和充电相关参数综合参考多篇文献中的取值进行设定。电池额定容量取 60 kWh，该值介于侯佳欣\supercite{ref15}采用的均匀分布 $U[40, 55]$ kWh 上限，以及当前主流纯电动车型，如比亚迪秦 Plus EV、广汽 AION S 等的电池配置水平之间，可作为反映当前技术水平的工程代表值。慢充功率取 7.2 kW，参考邵尹池等\supercite{ref4}和罗卓伟等\supercite{ref8}给出的私家车慢充功率 7 kW，并结合国标交流充电桩额定功率适当上调。充电效率取 0.92，在罗卓伟等\supercite{ref8}采用的 90\% 基础上略作提高，以体现近年充电设备效率的提升。
 
     初始 SOC 采用截断正态分布描述：
-
     \begin{equation}
     \label{eq:init_soc_dist}
     \text{SOC}_0 \sim \mathcal{N}(\mu_{\text{SOC}},\ \sigma_{\text{SOC}}^2), \quad \text{SOC}_0 \in [0, 1]
     \end{equation}
-
     本文取 $\mu_{\text{SOC}} = 0.60$、$\sigma_{\text{SOC}} = 0.10$。初始 SOC 均值参考罗卓伟等\supercite{ref8}给出的私家车初始 SOC 分布 $\mathcal{N}(0.6, 0.1^2)$，用于反映私家车完成日间出行后的典型电量水平。
 
     \begin{table}[htbp]
@@ -786,12 +753,10 @@
     此外，对于需要考虑空间策略的仿真场景，如就近充电或充电导航，本文引入黄梦旗等\supercite{ref17}文献中的 IEEE 33 节点系统充电站距离矩阵。该矩阵给出了 33 个配电网节点到 7 个充电站的距离数据，这 7 个充电站分别位于母线 1、6、9、13、16、20、30，可为充电导航策略中的距离衰减权重计算提供空间信息基础。
 
     在映射关系确定之后，每辆车的充电功率时序依据其停靠区域对应的映射关系投射到相应母线。$N$ 辆车的充电功率在各母线上按时步叠加，形成母线级时序充电负荷矩阵 $\mathbf{P} \in \mathbb{R}^{T \times n_{\text{bus}}}$：
-
     \begin{equation}
     \label{eq:bus_load_matrix}
     P_{t,b} = \sum_{v=1}^{N} p_{v,t} \cdot \mathbf{1}[\varphi(z_{v,t}) = b]
     \end{equation}
-
     其中 $P_{t,b}$ 为第 $t$ 个时步母线 $b$ 上的聚合充电功率（MW），$p_{v,t}$ 为车辆 $v$ 在第 $t$ 个时步的充电功率，$z_{v,t}$ 为车辆 $v$ 在第 $t$ 个时步所处交通区域，$\mathbf{1}[\cdot]$ 为示性函数。该矩阵将作为后续潮流计算和承载力评估的直接输入。
 
     \subsection{会话式模型（对比基线）}
@@ -799,12 +764,10 @@
     为系统评估出行链模型相较于传统方法在承载力评估中的差异，本文实现会话式充电模型作为对比基线。会话式模型的建模思路来源于田立亭等\supercite{ref7}的统计概率法，它以充电起始时刻和充电持续时长为核心随机变量，使每辆车每日产生若干相互独立的充电会话。
 
     在充电起始时刻方面，本文采用混合正态分布描述用户充电行为在时间上的分散特征，其中主峰对应晚间归家后的充电时段：
-
     \begin{equation}
     \label{eq:session_start_time}
     t_{\text{start}} \sim \sum_{c=1}^{C} w_c \cdot \mathcal{N}(\mu_c,\ \sigma_c^2)
     \end{equation}
-
     其中各分量的权重 $w_c$、均值 $\mu_c$ 和标准差 $\sigma_c$ 根据配置参数确定。充电持续时长采用截断正态分布描述，用来反映不同 SOC 水平下充电时长的差异。每日充电会话数则采用泊松分布描述，均值参数 $\lambda$ 表示车辆的平均日充电频次。
 
     会话式模型的本质特征在于，它直接从充电事件的统计特性出发开展建模，而不刻画充电需求形成之前的出行行为细节。这样的简化使其在充电负荷时间分布和空间分布上都与出行链模型存在系统性差异：会话式模型中的充电事件在时间上更集中，缺少日内多次出行带来的分散效应；在空间上也更随机，没有建立出行活动与充电地点之间的因果联系。这些差异将在第 4 章中体现为两种模型下承载力评估结果的明显不同。
@@ -873,39 +836,31 @@
     IEEE 33 节点配电系统是配电网分析中广泛采用的标准测试算例，由 Baran 和 Wu\supercite{ref22}在提出 DistFlow 潮流模型时首次使用。该系统为单电源辐射状配电网，额定电压 12.66 kV，包含 33 个节点和 32 条支路。本文采用从 0 开始的节点编号：节点 0 为变电站母线（平衡节点），节点 1—32 为负荷节点，后续正文、图表和仿真结果均沿用该编号体系。系统拓扑呈三分支树形结构：主馈线从节点 0 经节点 1—17 延伸至末端，三条分支馈线分别从节点 1、节点 2 和节点 5 引出。此外，系统设有 5 条常开联络线，连接不同馈线分支的末端节点，为网络重构提供备选路径。标准系统的拓扑结构如图 \ref{fig:ieee33_topology} 所示。
 
     对于辐射状配电网，DistFlow 方程\supercite{ref22}是描述支路功率和节点电压关系的基本模型。设支路 $(i, i+1)$ 的电阻和电抗分别为 $r_i$ 和 $x_i$，节点 $i$ 的有功负荷和无功负荷分别为 $P_{L,i}$ 和 $Q_{L,i}$，则从节点 $i$ 到节点 $i+1$ 的功率流和电压递推关系为：
-
     \begin{equation}
     \label{eq:distflow_active}
     P_{i+1} = P_i - r_i \frac{P_i^2 + Q_i^2}{V_i^2} - P_{L,i+1}
     \end{equation}
-
     \begin{equation}
     \label{eq:distflow_reactive}
     Q_{i+1} = Q_i - x_i \frac{P_i^2 + Q_i^2}{V_i^2} - Q_{L,i+1}
     \end{equation}
-
     \begin{equation}
     \label{eq:distflow_voltage}
     V_{i+1}^2 = V_i^2 - 2(r_i P_i + x_i Q_i) + (r_i^2 + x_i^2) \frac{P_i^2 + Q_i^2}{V_i^2}
     \end{equation}
-
     其中 $P_i$、$Q_i$ 分别为支路 $(i, i+1)$ 上的有功功率和无功功率，$V_i$ 为节点 $i$ 的电压幅值。上述方程中的二次项 $(P_i^2 + Q_i^2) / V_i^2$ 对应支路损耗。在配电网负荷水平较低时，可忽略二次损耗项得到简化的线性化 DistFlow 模型：
-
     \begin{equation}
     \label{eq:linear_distflow_active}
     P_{i+1} \approx P_i - P_{L,i+1}
     \end{equation}
-
     \begin{equation}
     \label{eq:linear_distflow_reactive}
     Q_{i+1} \approx Q_i - Q_{L,i+1}
     \end{equation}
-
     \begin{equation}
     \label{eq:linear_distflow_voltage}
     V_{i+1}^2 \approx V_i^2 - 2(r_i P_i + x_i Q_i)
     \end{equation}
-
     线性化模型在后续电压灵敏度分析中具有重要应用。
 
     本文采用 pandapower 开源工具\supercite{ref23}进行配电网建模与潮流计算。pandapower 提供了 IEEE 标准测试系统的快速加载接口，支持牛顿-拉夫逊潮流算法，能够高效求解节点电压幅值、支路功率和线路负载率等关键运行指标。
@@ -922,21 +877,17 @@
     标准 IEEE 33 节点系统的辐射状拓扑使得末端节点电压偏低，在接入电动汽车充电负荷前即已接近电压下限，不利于承载力的合理评估。为增强系统的网络耦合度和电压支撑能力，同时更贴近实际城市配电网的运行状态，本文对标准系统进行了如下改进。
 
     在网络拓扑方面，将标准系统中 5 条常开联络线全部闭合，使网络从辐射状结构转变为含联络线的环网结构。闭合的 5 条联络线分别连接母线 20 与母线 7、母线 8 与母线 14、母线 11 与母线 21、母线 17 与母线 32 以及母线 24 与母线 28，将原本独立的馈线分支两两连通，显著增强了不同馈线分支之间的功率互济能力，有效缓解末端节点的电压跌落问题。图 \ref{fig:ieee33_topology} 中以虚线标注的 5 条联络线即为本文改进方案中闭合的常开开关。在线路参数方面，将所有线路的最大传输容量统一设定为 6 MW，对应的最大允许电流为：
-
     \begin{equation}
     \label{eq:line_current_limit}
     I_{\max} = \frac{S_{\max}}{\sqrt{3} \cdot V_n} = \frac{6.0}{\sqrt{3} \times 12.66} \approx 0.274 \text{ kA}
     \end{equation}
-
     其中 $S_{\max}$ 为线路最大视在功率，$V_n$ 为额定电压。统一的热容量设定简化了约束校验逻辑，同时保证线路热稳定约束在高渗透率场景下能够被有效触发。
 
     此外，由于 IEEE 33 节点系统为中压配电网模型，不含各负荷节点处的配电变压器，本文为每个负荷节点设定等效配变容量 $S_n = 6.3$ MVA 作为节点供电容量的上限。节点 $i$ 的等效负载率计算为：
-
     \begin{equation}
     \label{eq:transformer_loading}
     \eta_i = \frac{\sqrt{P_i^2 + Q_i^2}}{S_n} \times 100\%
     \end{equation}
-
     其中 $P_i$ 和 $Q_i$ 分别为节点 $i$ 处的总有功和无功负荷，包括基础负荷和电动汽车充电负荷两部分。当 $\eta_i > 100\%$ 时判定为容量越限。变电站作为平衡节点，其供电容量设为 63 MVA，对应主变压器的额定容量。
 
     在负荷水平设定上，本文通过缩放因子 $\lambda$ 调整系统的基础负荷水平，将所有负荷节点的有功和无功负荷乘以 $\lambda$，以模拟不同负荷水平下的配电网运行工况。$\lambda$ 的物理含义为：以 IEEE 33 节点标准测试系统的原始负荷数据\supercite{ref22}为基准工况，$\lambda$ 表示对该基准负荷的同比例缩放因子。默认取 $\lambda = 1.0$，即保持标准测试系统的原始负荷水平不变，对应配电网在额定设计工况下的运行状态。在参数敏感性分析中将扫描 $\lambda \in \{0.5, 0.6, \ldots, 1.0\}$ 以考察基础负荷水平对承载力的影响，其中 $\lambda < 1.0$ 对应轻载工况，如工业负荷低谷或新建片区初期，$\lambda = 1.0$ 对应满载工况。
@@ -977,12 +928,10 @@
     \subsubsection{规模型承载力定义}
 
     配电网电动汽车承载力 $N^*$ 定义为：在给定风险容忍度 $\varepsilon$ 下，系统可接纳的最大电动汽车数量，使得运行约束被违反的概率不超过 $\varepsilon$。形式化地：
-
     \begin{equation}
     \label{eq:hosting_capacity_definition}
     N^* = \max\{N \in \mathbb{Z}^+ : \hat{\pi}(N) \leq \varepsilon\}
     \end{equation}
-
     其中 $\hat{\pi}(N)$ 为接入 $N$ 辆电动汽车时硬约束越限概率的估计值，$\varepsilon$ 为风险容忍度。本文取 $\varepsilon = 0.05$（5\%），即容许不超过 5\% 的随机场景出现约束违规。该取值是概率性承载力评估中常用的风险容忍度水平，在评估精度和结果保守性之间取得合理平衡。
 
     上述定义将承载力问题转化为单变量搜索问题：沿 $N$ 轴递增，找到使 $\hat{\pi}(N)$ 恰好不超过 $\varepsilon$ 的最大整数 $N$。搜索过程中，每个 $N$ 值对应的 $\hat{\pi}(N)$ 通过蒙特卡洛模拟或确定性校验进行估计。
@@ -992,35 +941,27 @@
     承载力评估需要明确的约束体系作为判据。本文借鉴陈卫等\supercite{ref13}和 Xi 等\supercite{ref18}的评估指标分类思路，建立硬约束与软指标相结合的双层评估结构。
 
     硬约束层构成安全运行的不可逾越底线，任一硬约束被违反即判定该运行场景为“越限”，直接决定承载力边界。本文定义三类硬约束。首先是电压越限约束，要求全网所有母线的电压幅值满足：
-
     \begin{equation}
     \label{eq:voltage_constraint}
     V_{\min} \leq V_i \leq V_{\max}, \quad \forall i \in \mathcal{B}
     \end{equation}
-
     其中 $\mathcal{B}$ 为母线集合，$V_{\min} = 0.95$ p.u.、$V_{\max} = 1.05$ p.u.。该限值与 Fatima 等\supercite{ref6}综述中约 30\% 文献采用的 $\pm 5\%$ 标准一致，是配电网电压质量的基本要求。其次是线路热稳定约束，要求所有线路的负载率不超过额定值：
-
     \begin{equation}
     \label{eq:line_loading_constraint}
     \frac{S_l}{S_{l,\text{rated}}} \leq 100\%, \quad \forall l \in \mathcal{L}
     \end{equation}
-
     其中 $S_l$ 为线路 $l$ 的视在功率，$S_{l,\text{rated}}$ 为其额定容量，本文中统一设定为 6 MW。第三类是变压器及节点容量约束，各负荷节点的等效供电容量不得超过配变额定容量：
-
     \begin{equation}
     \label{eq:node_capacity_constraint}
     \frac{\sqrt{P_i^2 + Q_i^2}}{S_{n,i}} \leq 100\%, \quad \forall i \in \mathcal{B}
     \end{equation}
-
     此外，潮流求解器 Newton-Raphson 收敛失败亦被视为硬约束违反，因为不收敛通常意味着系统运行点已严重偏离正常范围。综合来看，一个场景被判定为“越限”当且仅当在该场景的任意时步内，上述任一硬约束被违反。
 
     软指标层不参与承载力边界的判定，但从运行质量角度提供定量信息以辅助工程决策。本文选取四个代表性软指标。电压偏差 $\Delta V_i = |V_i - V_{\text{nom}}|$ 衡量各母线电压偏离额定值的程度，统计全网所有母线、所有时步的平均偏差和最大偏差。网络损耗反映系统运行的经济性，全网有功损耗为：
-
     \begin{equation}
     \label{eq:network_loss}
     P_{\text{loss}} = \sum_{l \in \mathcal{L}} P_{l,\text{loss}} + \sum_{t \in \mathcal{T}} P_{t,\text{loss}}
     \end{equation}
-
     其中第一项为线路损耗，第二项为变压器损耗。线路峰值负载率取全网线路中的最大负载率，反映线路运行裕度；变压器峰值负载率取全网节点等效负载率的峰值，反映节点供电能力的富余程度。
 
     上述双层评估体系的指标构成汇总于表 \ref{tab:dual_layer_assessment}。
@@ -1059,22 +1000,18 @@
     在场景生成环节，每个场景 $s$ 的构建过程如下：对 $N$ 辆电动汽车分别独立采样出行链或会话式充电事件，经 SOC 演化模型计算各车的充电功率时序，再通过交通、电力耦合映射投射至配电网母线，叠加形成该场景的母线级时序充电负荷矩阵 $\mathbf{P}^{(s)} \in \mathbb{R}^{T \times n_{\text{bus}}}$，其中 $T$ 为仿真时步数。充电负荷叠加在基础负荷之上，通过 pandapower 逐时步执行牛顿-拉夫逊潮流计算，获取各时步的节点电压和支路负载率。
 
     在越限概率估计环节，场景 $s$ 被判定为越限即 $Y_s = 1$，当且仅当在该场景的任意时步内任一硬约束被违反。越限概率的点估计为：
-
     \begin{equation}
     \label{eq:violation_probability_estimator}
     \hat{\pi}(N) = \frac{1}{S} \sum_{s=1}^{S} Y_s = \frac{N_{\text{viol}}}{S}
     \end{equation}
-
     其中 $N_{\text{viol}}$ 为越限场景数。由于各场景独立同分布，$\hat{\pi}(N)$ 是真实越限概率 $\pi(N)$ 的无偏估计。
 
     为量化有限场景数带来的估计不确定性，本文采用 Wilson 得分区间构建 95\% 置信区间。相较于经典的 Wald 区间 $\hat{\pi} \pm z_{\alpha/2}\sqrt{\hat{\pi}(1-\hat{\pi})/S}$，Wilson 区间在小样本和 $\hat{\pi}$ 接近 0 或 1 的极端比例情形下具有更好的覆盖率。设 $z = z_{0.975} = 1.96$，Wilson 95\% 置信区间为：
-
     \begin{equation}
     \label{eq:wilson_interval}
     \text{CI}_{95\%}(\hat{\pi}) =
     \frac{\hat{\pi} + \dfrac{z^2}{2S} \pm z\sqrt{\dfrac{\hat{\pi}(1-\hat{\pi})}{S} + \dfrac{z^2}{4S^2}}}{1 + \dfrac{z^2}{S}}
     \end{equation}
-
     该区间的下界 $\text{CI}_{\text{low}}$ 和上界 $\text{CI}_{\text{high}}$ 在后续早期终止判据和结果可信度评价中发挥重要作用。
 
     在场景数设定上，本文默认取 $S = 20$，这一取值是在估计精度与计算开销之间权衡的结果。需要指出的是，当 $\hat{\pi}$ 恰好处于临界值 $\varepsilon = 0.05$ 附近时，单次 Wilson 95\% 置信区间较宽，约为 $[0.009, 0.236]$，单独的 $\hat{\pi}$ 估计并不足以精确定位边界。然而，承载力 $N^*$ 的判定并非依赖单一 $N$ 值处的概率估计，而是通过自适应二分搜索在 $N$ 轴上多点评估 $\hat{\pi}(N)$。在 $N$ 远小于或远大于 $N^*$ 时，$\hat{\pi}$ 远离临界值，置信区间窄且提前终止机制可进一步减少场景数；在 $N$ 接近 $N^*$ 的边界区域，二分搜索的末阶段通过连续多个相邻 $N$ 值的一致性判定来锁定边界，补偿了单点估计精度的不足。因此 $S = 20$ 在搜索算法整体框架下是有效的。第 4 章将通过收敛性验证实验定量确认该取值的合理性，以大样本 $S = 200$ 的结果为基准进行对比。
@@ -1090,12 +1027,10 @@
     \noindent\textbf{阶段二：二分精修。} 在粗区间 $[\text{lo}, \text{hi}]$ 上执行经典二分搜索。每次取中点 $\text{mid} = \lfloor(\text{lo} + \text{hi})/2\rfloor$，评估 $\hat{\pi}(\text{mid})$：若 $\hat{\pi}(\text{mid}) \leq \varepsilon$，则 $\text{lo} \leftarrow \text{mid}$；否则 $\text{hi} \leftarrow \text{mid}$。重复直至区间宽度 $\text{hi} - \text{lo} \leq \Delta_{\min}$ 或达到最大迭代次数 $K_{\max}$。本文取 $\Delta_{\min} = 10$、$K_{\max} = 14$。
 
     \noindent\textbf{阶段三：边界逐一验证。} 在二分收敛后的小区间 $[\text{lo}, \text{hi}]$ 内，逐一评估每个整数 $N$ 值的越限概率，确定精确的 $N^*$：
-
     \begin{equation}
     \label{eq:boundary_verification}
     N^* = \max\{N \in [\text{lo}, \text{hi}] : \hat{\pi}(N) \leq \varepsilon\}
     \end{equation}
-
     该阶段确保不遗漏区间内的任何不连续跳变点。
 
     \begin{figure}[htbp]
@@ -1114,12 +1049,10 @@
     \end{figure}
 
     为保证搜索过程中不同 $N$ 值之间以及不同运行之间结果的可复现性和可比性，本文采用公共随机数技术，为每个场景索引 $s$ 预设确定性随机种子：
-
     \begin{equation}
     \label{eq:common_random_seed}
     \text{seed}(s) = \text{hash}(\text{seed}_{\text{global}},\ 9103,\ s)
     \end{equation}
-
     使得相同索引的场景在不同 $N$ 值的评估中共享相同的出行链采样和 SOC 演化随机序列。公共随机数的引入有效降低了不同 $N$ 值之间 $\hat{\pi}(N)$ 估计量的方差，使风险曲线更为平滑，有利于二分搜索的准确收敛。
 
     \subsubsection{计算加速策略}
@@ -1195,32 +1128,26 @@
     灵敏度方法利用电压对有功注入的线性化关系，无需逐步潮流即可解析估计承载力，计算效率最高。
 
     该方法的核心是电压灵敏度矩阵 $\mathbf{S} \in \mathbb{R}^{n_{\text{bus}} \times n_{\text{bus}}}$，其中元素 $S_{ij} = \partial V_i / \partial P_j$ 表示母线 $j$ 注入单位有功功率时母线 $i$ 电压的变化量。本文采用数值微扰法计算该矩阵：在基准潮流解的基础上，逐一在各母线上施加 $\Delta P = 0.01$ MW 的有功扰动，运行潮流计算获取扰动后电压，通过差商近似偏导数：
-
     \begin{equation}
     \label{eq:sensitivity_matrix}
     S_{ij} \approx \frac{V_i(P_j + \Delta P) - V_i(P_j)}{\Delta P}
     \end{equation}
-
     对于有负荷注入的母线，$S_{ii} < 0$（增加有功负荷导致本母线电压下降），$|S_{ii}|$ 的大小反映该母线的“电压脆弱程度”，即 $|S_{ii}|$ 越大，单位负荷增量引起的电压降落越大，该母线越薄弱。
 
     基于灵敏度矩阵，本文在三种不同的充电负荷空间分配假设下分别估计承载力，以揭示空间分布对评估结果的影响。
 
     最为极端的假设是最薄弱母线集中分配，即假设所有 $N$ 辆电动汽车均在同一条母线充电。此时各母线的电压约束为 $V_{\text{base},i} + N \cdot P_{\text{ev}} \cdot S_{ii} \geq V_{\min}$，由此可得承载力的解析下界：
-
     \begin{equation}
     \label{eq:worst_case_capacity}
     N^*_{\text{worst}} = \min_{i \in \mathcal{B}} \left\lfloor \frac{V_{\text{base},i} - V_{\min}}{|P_{\text{ev}} \cdot S_{ii}|} \right\rfloor
     \end{equation}
-
     其中 $P_{\text{ev}}$ 为单车充电功率，$V_{\text{base},i}$ 为基线电压。该估计极为保守，实际中几乎不可能出现所有车辆集中于单一母线的情形，但其解析特性使之适用于快速初筛。
 
     居中的假设是均匀分配，即 $N$ 辆电动汽车均匀分布在 $n_{\text{bus}}$ 条母线上。此时母线 $i$ 的电压约束为 $V_{\text{base},i} + \frac{N}{n_{\text{bus}}} \cdot P_{\text{ev}} \cdot \sum_{j \in \mathcal{B}} S_{ij} \geq V_{\min}$，对应的承载力为：
-
     \begin{equation}
     \label{eq:uniform_capacity}
     N^*_{\text{uniform}} = \min_{i \in \mathcal{B}} \left\lfloor \frac{(V_{\text{base},i} - V_{\min}) \cdot n_{\text{bus}}}{|P_{\text{ev}} \cdot \sum_j S_{ij}|} \right\rfloor
     \end{equation}
-
     最贴近实际的假设是代表性模板分配，利用确定性方法中提取的充电模板 $\bar{p}_{t,b}$ 刻画充电负荷的时空分布。此时各母线在每个时步的电压变化为 $\Delta V_{i,t}(N) = N \cdot \sum_{j \in \mathcal{B}} S_{ij} \cdot \bar{p}_{t,j}$，承载力即为使所有母线在所有时步均满足电压约束的最大 $N$ 值。
 
     图 \ref{fig:voltage_margin_sensitivity} 展示了各母线的基线电压裕度和灵敏度对角元素分布。
@@ -1248,12 +1175,10 @@
     \end{figure}
 
     四种评估配置的承载力结果呈现明确的层次关系：
-
     \begin{equation}
     \label{eq:method_order}
     N^*_{\text{worst}}(24) \ll N^*_{\text{MC}}(97) < N^*_{\text{det}}(120) \approx N^*_{\text{sens-repr}}(121)
     \end{equation}
-
     上述层次关系可从充电负荷空间分布假设的差异加以理解。灵敏度法的最薄弱母线分配假设所有车辆集中于电压最脆弱的单一母线充电，这在实际中概率极低，因此所得 $N^*$ 最小，仅为 24 辆，可视为承载力的解析下界。蒙特卡洛方法通过独立随机场景抽样，充分反映了充电负荷时空分布的随机波动，在部分低概率场景中，较多车辆可能恰好聚集于薄弱母线从而引发电压越限，风险容忍度 $\varepsilon = 5\%$ 容许这些尾部事件的存在，所得 $N^* = 97$ 辆代表了可控风险下的概率安全边界。确定性方法采用多场景均值模板替代随机抽样，模板的平滑效应消除了场景间的充电负荷波动，掩盖了极端聚集现象，因此所得 $N^* = 120$ 辆反映的是期望场景下的安全边界。
 
     值得注意的是，灵敏度法采用典型模板分配时所得 $N^*_{\text{sens-repr}} = 121$ 辆与确定性法的 120 辆高度接近。两者本质上均以均值充电模板的空间分布为基础估算承载力，只是求解路径不同，前者通过 $\Delta V / \Delta P$ 矩阵进行解析反推，后者通过模板缩放与潮流迭代进行数值搜索。二者结果的一致性从侧面验证了灵敏度矩阵在线性近似范围内的准确性。
