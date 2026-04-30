@@ -8,25 +8,31 @@
         "input_path": "docs/thesis/论文初稿.md",
         "output_path": "finish/intermediate/论文初稿_round1.txt",
         "chunk_limit": 850,
-        "input_segment_count": 27,
-        "output_segment_count": 27,
+        "input_segment_count": 49,
+        "output_segment_count": 49,
         "manifest_path": "finish/intermediate/论文初稿_round1_manifest.json",
-        "scope": "摘要 + 第1章（绪论）",
-        "score_total": 36,
-        "timestamp": "2026-04-30T00:00:00Z"
-      },
+        "scope": "摘要（中文）+ 第1章（绪论）；按用户要求重做并直接合并到原文；同一输出文件含已追加处理的英文Abstract",
+        "score_total": 60,
+        "timestamp": "2026-04-30T21:41:31+08:00"
+      }
+    ]
+  },
+  "docs/thesis/论文初稿.md#英文Abstract": {
+    "origin_path": "docs/thesis/论文初稿.md#英文Abstract",
+    "rounds": [
       {
-        "round": 2,
-        "prompt": "prompts/baibaiAIGC2.md",
-        "input_path": "finish/intermediate/论文初稿_round1.txt",
-        "output_path": "finish/intermediate/论文初稿_round2.txt",
+        "round": 1,
+        "prompt": "prompts/baibaiaigc-en.md",
+        "prompt_profile": "en",
+        "input_path": "docs/thesis/论文初稿.md",
+        "output_path": "finish/intermediate/论文初稿_round1.txt",
         "chunk_limit": 850,
-        "input_segment_count": 27,
-        "output_segment_count": 27,
-        "manifest_path": "finish/intermediate/论文初稿_round2_manifest.json",
-        "scope": "摘要（中文）+ 英文Abstract（首轮英文处理）+ 第1章（绪论）",
-        "score_total": 43,
-        "timestamp": "2026-04-30T08:00:00Z"
+        "input_segment_count": 1,
+        "output_segment_count": 1,
+        "manifest_path": "finish/intermediate/论文初稿_round1_manifest.json",
+        "scope": "英文Abstract；按用户追加要求处理并直接合并到原文",
+        "score_total": 62,
+        "timestamp": "2026-04-30T21:41:31+08:00"
       }
     ]
   },
