@@ -903,7 +903,7 @@ def fig_2_8_activity_gantt() -> Figure:
         mpatches.Patch(color=COLORS["charge"], label="充电", alpha=0.55),
     ]
     fig.legend(handles=legend_patches, loc="lower center", ncols=5, fontsize=10,
-               bbox_to_anchor=(0.5, -0.02))
+               bbox_to_anchor=(0.5, -0.06))
     return fig
 
 
