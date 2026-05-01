@@ -14,6 +14,20 @@
         "scope": "摘要（中文）+ 第1章（绪论）；按用户要求重做并直接合并到原文；同一输出文件含已追加处理的英文Abstract",
         "score_total": 60,
         "timestamp": "2026-04-30T21:41:31+08:00"
+      },
+      {
+        "round": 2,
+        "prompt": "prompts/baibaiAIGC2.md",
+        "input_path": "finish/intermediate/论文初稿_round1.txt",
+        "output_path": "finish/intermediate/论文初稿_round2.txt",
+        "chunk_limit": 850,
+        "input_segment_count": 31,
+        "output_segment_count": 31,
+        "manifest_path": "finish/intermediate/论文初稿_round2_manifest.json",
+        "final_output_path": "finish/论文初稿_降AI.md",
+        "scope": "摘要（中文）+ 英文Abstract + 第1章（绪论）；按用户检测结果定向重做并直接合并到原文",
+        "score_total": 64,
+        "timestamp": "2026-05-01T22:13:06+08:00"
       }
     ]
   },
