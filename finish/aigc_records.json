@@ -98,6 +98,21 @@
         "scope": "第2章（电动汽车充电负荷时空建模）",
         "score_total": 61,
         "timestamp": "2026-04-30T01:14:43+08:00"
+      },
+      {
+        "round": 2,
+        "prompt": "prompts/baibaiAIGC2.md",
+        "prompt_profile": "cn",
+        "input_path": "finish/intermediate/论文初稿_第2章_round1.txt",
+        "output_path": "finish/intermediate/论文初稿_第2章_round2.txt",
+        "chunk_limit": 850,
+        "input_segment_count": 46,
+        "output_segment_count": 46,
+        "manifest_path": "finish/intermediate/论文初稿_第2章_round2_manifest.json",
+        "final_output_path": "docs/thesis/论文初稿.md",
+        "scope": "第2章（电动汽车充电负荷时空建模）；参考 docs/aigc高片段.md 中第二章相关高疑似片段，完成第二轮并同步合并到 markdown 论文版本、LaTeX 版本与 finish/论文初稿_降AI.md",
+        "score_total": 66,
+        "timestamp": "2026-05-01T23:50:16+08:00"
       }
     ]
   },
