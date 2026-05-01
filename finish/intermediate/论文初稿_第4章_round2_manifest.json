@@ -1,0 +1,926 @@
+{
+  "source": "finish/intermediate/论文初稿_第4章_round1.txt",
+  "output": "finish/intermediate/论文初稿_第4章_round2.txt",
+  "chunk_limit": 850,
+  "paragraph_count": 130,
+  "segment_count": 131,
+  "segments": [
+    {
+      "segment_index": 1,
+      "paragraph_index": 1,
+      "chunk_index": 1,
+      "chars": 20,
+      "preview": "## 第4章 充电策略对承载力的影响分析"
+    },
+    {
+      "segment_index": 2,
+      "paragraph_index": 2,
+      "chunk_index": 1,
+      "chars": 250,
+      "preview": "第3章主要围绕蒙特卡洛概率评估方法，建立了配电网承载力的计算流程，并在改进IEEE 33节点系统中得到出行链模型无序充电场景下的基线承载力。从分项约束结果看，在"
+    },
+    {
+      "segment_index": 3,
+      "paragraph_index": 3,
+      "chunk_index": 1,
+      "chars": 17,
+      "preview": "### 4.1 充电策略定义与建模"
+    },
+    {
+      "segment_index": 4,
+      "paragraph_index": 4,
+      "chunk_index": 1,
+      "chars": 126,
+      "preview": "充电策略的作用，本质上是改变充电负荷在时间或空间上的分配方式，进而改变配电网运行状态以及系统可接纳的电动汽车规模。本文从时间调度和空间引导两个角度出发，建立四类"
+    },
+    {
+      "segment_index": 5,
+      "paragraph_index": 5,
+      "chunk_index": 1,
+      "chars": 36,
+      "preview": "![图4-1 四种充电策略分类与特征](pics/fig4_1.png)"
+    },
+    {
+      "segment_index": 6,
+      "paragraph_index": 6,
+      "chunk_index": 1,
+      "chars": 16,
+      "preview": "图4-1 四种充电策略分类与特征"
+    },
+    {
+      "segment_index": 7,
+      "paragraph_index": 7,
+      "chunk_index": 1,
+      "chars": 15,
+      "preview": "#### 4.1.1 无序充电"
+    },
+    {
+      "segment_index": 8,
+      "paragraph_index": 8,
+      "chunk_index": 1,
+      "chars": 87,
+      "preview": "无序充电作为基线策略，假定车辆到达充电地点后立刻开始充电，不接受外部调度。此时，充电发生的时间和地点均由用户自身出行行为决定，能够反映缺少统一管理时电动汽车较自"
+    },
+    {
+      "segment_index": 9,
+      "paragraph_index": 9,
+      "chunk_index": 1,
+      "chars": 176,
+      "preview": "在出行链模型中，车辆到达某一停靠点后，若满足第2章定义的\"下一程能量储备\"充电触发判据，就在该停靠点开始充电。充电地点由停靠点所在交通区域经过交通—电力耦合映射"
+    },
+    {
+      "segment_index": 10,
+      "paragraph_index": 10,
+      "chunk_index": 1,
+      "chars": 15,
+      "preview": "#### 4.1.2 就近充电"
+    },
+    {
+      "segment_index": 11,
+      "paragraph_index": 11,
+      "chunk_index": 1,
+      "chars": 72,
+      "preview": "就近充电策略主要从空间维度调整充电地点。当车辆产生充电需求时，模型不再默认其在所属区域对应母线处充电，而是在可选充电站中选择地理距离最近的站点。"
+    },
+    {
+      "segment_index": 12,
+      "paragraph_index": 12,
+      "chunk_index": 1,
+      "chars": 349,
+      "preview": "该策略的空间选择逻辑为：对于待充电车辆所在区域对应的母线$b_0$，在预设充电站候选母线集合$\\mathcal{B}_{\\text{cs}}$中按地理距离排序，"
+    },
+    {
+      "segment_index": 13,
+      "paragraph_index": 13,
+      "chunk_index": 1,
+      "chars": 15,
+      "preview": "#### 4.1.3 有序充电"
+    },
+    {
+      "segment_index": 14,
+      "paragraph_index": 14,
+      "chunk_index": 1,
+      "chars": 254,
+      "preview": "有序充电策略从时间维度调控充电行为，其基本思路是将部分充电需求从负荷高峰时段转移到低谷时段。张良等[19]提出的分时电价引导两阶段有序充放电策略表明，把充电行为"
+    },
+    {
+      "segment_index": 15,
+      "paragraph_index": 15,
+      "chunk_index": 1,
+      "chars": 315,
+      "preview": "在该策略下，车辆产生充电需求时，如果当前时刻位于充电窗口内，则立即开始充电；如果当前时刻位于窗口外，则把充电起始时间推迟到窗口开始时刻$t_{\\text{sta"
+    },
+    {
+      "segment_index": 16,
+      "paragraph_index": 16,
+      "chunk_index": 1,
+      "chars": 161,
+      "preview": "如果所有车辆都在$t_{\\text{start}}$时刻同步开始充电，窗口起始处会产生新的负荷尖峰，削峰效果可能被抵消，甚至使峰值进一步升高。Fatima等[6"
+    },
+    {
+      "segment_index": 17,
+      "paragraph_index": 17,
+      "chunk_index": 1,
+      "chars": 51,
+      "preview": "$$t_{\\text{charge}} = t_{\\text{start}} + U(0,\\ W)$$"
+    },
+    {
+      "segment_index": 18,
+      "paragraph_index": 18,
+      "chunk_index": 1,
+      "chars": 377,
+      "preview": "其中$U(0, W)$为$[0, W)$上的均匀分布，$W$为充电窗口时长。对于跨午夜窗口（$t_{\\text{start}} > t_{\\text{end}}"
+    },
+    {
+      "segment_index": 19,
+      "paragraph_index": 19,
+      "chunk_index": 1,
+      "chars": 127,
+      "preview": "第2章设计的多日连续仿真框架在这里具有实际意义。若只采用单日仿真，22:00—24:00只覆盖2小时充电窗口，午夜之后的充电过程会被截断；采用2天连续仿真后，2"
+    },
+    {
+      "segment_index": 20,
+      "paragraph_index": 20,
+      "chunk_index": 1,
+      "chars": 126,
+      "preview": "后续分析中，本文对比两种有序充电配置。第一种是不含随机延迟的有序充电，所有窗口外充电需求统一推迟到$t_{\\text{start}}$；第二种是含随机延迟的有序"
+    },
+    {
+      "segment_index": 21,
+      "paragraph_index": 21,
+      "chunk_index": 1,
+      "chars": 15,
+      "preview": "#### 4.1.4 充电导航"
+    },
+    {
+      "segment_index": 22,
+      "paragraph_index": 22,
+      "chunk_index": 1,
+      "chars": 239,
+      "preview": "充电导航策略把空间引导纳入充电决策，其核心思想可概括为\"空间换容量\"[17]。也就是说，通过引导车辆选择电气裕度较充足的充电站，把充电负荷从薄弱母线转移到更强健"
+    },
+    {
+      "segment_index": 23,
+      "paragraph_index": 23,
+      "chunk_index": 1,
+      "chars": 372,
+      "preview": "本文设计了融合五个因子的动态评分导航策略。车辆产生充电需求时，模型对候选充电母线进行综合评分，并选择评分较优的母线作为充电目标。五个因子的设计按照\"用户便利性—"
+    },
+    {
+      "segment_index": 24,
+      "paragraph_index": 24,
+      "chunk_index": 1,
+      "chars": 37,
+      "preview": "![图4-2 导航策略多因子评分机制](pics/fig_4_2.png)"
+    },
+    {
+      "segment_index": 25,
+      "paragraph_index": 25,
+      "chunk_index": 1,
+      "chars": 16,
+      "preview": "图4-2 导航策略多因子评分机制"
+    },
+    {
+      "segment_index": 26,
+      "paragraph_index": 26,
+      "chunk_index": 1,
+      "chars": 62,
+      "preview": "第一个因子为距离衰减权重$w_{\\text{dist}}$，基于候选母线与车辆当前所在母线之间的拓扑距离$d$施加幂律衰减："
+    },
+    {
+      "segment_index": 27,
+      "paragraph_index": 27,
+      "chunk_index": 1,
+      "chars": 41,
+      "preview": "$$w_{\\text{dist}} = \\frac{1}{d^{\\beta}}$$"
+    },
+    {
+      "segment_index": 28,
+      "paragraph_index": 28,
+      "chunk_index": 1,
+      "chars": 115,
+      "preview": "其中$\\beta$为距离惩罚指数，本文取$\\beta = 1.0$。该因子用于保证在其他条件相近时优先选择距离较近的充电站，体现用户对充电便利性的偏好。权重归一"
+    },
+    {
+      "segment_index": 29,
+      "paragraph_index": 29,
+      "chunk_index": 1,
+      "chars": 154,
+      "preview": "第二个因子为静态电压裕度评分$w_{\\text{score}}$。该因子利用基线潮流计算得到的各母线电压裕度$V_{\\text{base},i} - V_{\\m"
+    },
+    {
+      "segment_index": 30,
+      "paragraph_index": 30,
+      "chunk_index": 1,
+      "chars": 89,
+      "preview": "第三个因子为动态负荷拥塞惩罚$w_{\\text{temporal}}$。在仿真过程中，模型实时累计各母线已经调度的充电负荷，并以当前时段已调度功率与参考功率之比"
+    },
+    {
+      "segment_index": 31,
+      "paragraph_index": 31,
+      "chunk_index": 1,
+      "chars": 75,
+      "preview": "$$w_{\\text{temporal}} = \\frac{1}{1 + \\bar{r} + 0.5 \\cdot r_{\\text{peak}}}$$"
+    },
+    {
+      "segment_index": 32,
+      "paragraph_index": 32,
+      "chunk_index": 1,
+      "chars": 106,
+      "preview": "其中$\\bar{r}$为充电时段内已调度负荷与参考功率的平均比值，$r_{\\text{peak}}$为峰值比值。当多辆车在相近时段产生充电需求时，该因子能够起到"
+    },
+    {
+      "segment_index": 33,
+      "paragraph_index": 33,
+      "chunk_index": 1,
+      "chars": 101,
+      "preview": "第四个因子为灵敏度电压预测$w_{\\text{voltage}}$。该因子借助第3章得到的电压灵敏度矩阵$\\mathbf{S}$，在不运行完整潮流计算的前提下，"
+    },
+    {
+      "segment_index": 34,
+      "paragraph_index": 34,
+      "chunk_index": 1,
+      "chars": 43,
+      "preview": "$$\\Delta V_i = S_{ib} \\cdot P_{\\text{ev}}$$"
+    },
+    {
+      "segment_index": 35,
+      "paragraph_index": 35,
+      "chunk_index": 1,
+      "chars": 142,
+      "preview": "其中$b$为候选充电母线，$P_{\\text{ev}}$为单车充电功率。若预测电压低于安全裕度$V_{\\min} + \\delta_{\\text{safe}}$"
+    },
+    {
+      "segment_index": 36,
+      "paragraph_index": 36,
+      "chunk_index": 1,
+      "chars": 98,
+      "preview": "$$w_{\\text{voltage}} = \\frac{1}{1 + \\exp\\left(-\\frac{m - \\delta_{\\text{safe}}}{\\"
+    },
+    {
+      "segment_index": 37,
+      "paragraph_index": 37,
+      "chunk_index": 1,
+      "chars": 486,
+      "preview": "其中$m$为预测电压裕度，$\\delta_w = 0.006$ p.u.为惩罚窗口宽度。$\\delta_{\\text{safe}}$和$\\delta_w$的取值"
+    },
+    {
+      "segment_index": 38,
+      "paragraph_index": 38,
+      "chunk_index": 1,
+      "chars": 357,
+      "preview": "需要区分的是，第二个因子$w_{\\text{score}}$和第四个因子$w_{\\text{voltage}}$虽然都与电压裕度有关，但信息来源和功能定位并不相"
+    },
+    {
+      "segment_index": 39,
+      "paragraph_index": 39,
+      "chunk_index": 1,
+      "chars": 165,
+      "preview": "第五个因子为上游馈线拥塞权重$w_{\\text{path}}$。对于候选母线，模型沿供电路径回溯至变电站，统计路径上各线路的当前负载率。若路径中存在负载率较高的"
+    },
+    {
+      "segment_index": 40,
+      "paragraph_index": 40,
+      "chunk_index": 1,
+      "chars": 19,
+      "preview": "上述五个因子以乘法形式组合为综合评分："
+    },
+    {
+      "segment_index": 41,
+      "paragraph_index": 41,
+      "chunk_index": 1,
+      "chars": 144,
+      "preview": "$$w_b = (w_{\\text{score},b} + \\epsilon) \\cdot w_{\\text{dist},b} \\cdot w_{\\text{t"
+    },
+    {
+      "segment_index": 42,
+      "paragraph_index": 42,
+      "chunk_index": 1,
+      "chars": 131,
+      "preview": "其中$\\epsilon$为小常数$10^{-6}$，用于防止静态评分为零时综合评分退化。对$K$个候选母线（本文取$K = 6$）的综合评分进行归一化后，再通过"
+    },
+    {
+      "segment_index": 43,
+      "paragraph_index": 43,
+      "chunk_index": 1,
+      "chars": 107,
+      "preview": "根据是否启用第三至第五个因子的实时感知功能，本文将导航策略分为静态和动态两种变体。静态导航只使用距离衰减和静态电压裕度两个因子，不依赖运行时信息；动态导航启用全"
+    },
+    {
+      "segment_index": 44,
+      "paragraph_index": 44,
+      "chunk_index": 1,
+      "chars": 16,
+      "preview": "### 4.2 有序充电效果分析"
+    },
+    {
+      "segment_index": 45,
+      "paragraph_index": 45,
+      "chunk_index": 1,
+      "chars": 38,
+      "preview": "本节通过对比充电负荷时序曲线，分析有序充电及其随机延迟机制对负荷分布的影响。"
+    },
+    {
+      "segment_index": 46,
+      "paragraph_index": 46,
+      "chunk_index": 1,
+      "chars": 120,
+      "preview": "图4-3给出了出行链模型下500辆电动汽车在三种策略（无序充电、有序充电无延迟、有序充电随机延迟）下的聚合充电功率时序曲线。上方面板为完整2天连续时序，下方面板"
+    },
+    {
+      "segment_index": 47,
+      "paragraph_index": 47,
+      "chunk_index": 1,
+      "chars": 58,
+      "preview": "![图4-3 有序充电随机延迟效果对比](../../output/ch4_figures/fig_4_3.png)"
+    },
+    {
+      "segment_index": 48,
+      "paragraph_index": 48,
+      "chunk_index": 1,
+      "chars": 37,
+      "preview": "图4-3 有序充电随机延迟效果对比（出行链模型，500辆车，2天连续仿真）"
+    },
+    {
+      "segment_index": 49,
+      "paragraph_index": 49,
+      "chunk_index": 1,
+      "chars": 385,
+      "preview": "从图中可以看到三个比较突出的现象。首先，在无序充电策略下，聚合充电负荷在18:00—22:00时段形成明显峰值，峰值功率为1473 kW，该时段正好与居民晚间用"
+    },
+    {
+      "segment_index": 50,
+      "paragraph_index": 50,
+      "chunk_index": 1,
+      "chars": 134,
+      "preview": "下方面板的跨午夜窗口放大视图进一步说明了这一点：无延迟版本在22:00形成明显功率阶跃，而随机延迟版本的充电负荷在整个8小时窗口内逐步铺开。多日连续仿真框架使跨"
+    },
+    {
+      "segment_index": 51,
+      "paragraph_index": 51,
+      "chunk_index": 1,
+      "chars": 159,
+      "preview": "三种策略的负荷特征可以概括为：无序充电峰值为1473 kW，有序充电（无延迟）峰值为1855 kW，较无序增加26%；有序充电（随机延迟）峰值为1547 kW，"
+    },
+    {
+      "segment_index": 52,
+      "paragraph_index": 52,
+      "chunk_index": 1,
+      "chars": 376,
+      "preview": "还需要注意，在出行链模型下，有序充电会使部分充电事件因驻留时间约束而无法执行。三种策略的总充电量分别为：无序充电15350 kWh、有序充电（无延迟）12376"
+    },
+    {
+      "segment_index": 53,
+      "paragraph_index": 53,
+      "chunk_index": 1,
+      "chars": 16,
+      "preview": "### 4.3 导航策略效果分析"
+    },
+    {
+      "segment_index": 54,
+      "paragraph_index": 54,
+      "chunk_index": 1,
+      "chars": 33,
+      "preview": "本节从充电负荷空间分布和母线电压两个层面，分析导航策略的作用机理。"
+    },
+    {
+      "segment_index": 55,
+      "paragraph_index": 55,
+      "chunk_index": 1,
+      "chars": 22,
+      "preview": "#### 4.3.1 母线级充电负荷空间分布"
+    },
+    {
+      "segment_index": 56,
+      "paragraph_index": 56,
+      "chunk_index": 1,
+      "chars": 37,
+      "preview": "图4-4展示了500辆电动汽车在无序充电和导航策略下各母线的峰值充电功率。"
+    },
+    {
+      "segment_index": 57,
+      "paragraph_index": 57,
+      "chunk_index": 1,
+      "chars": 63,
+      "preview": "![图4-4 导航策略前后母线级负荷空间分布对比](../../output/ch4_figures/fig_4_4.png)"
+    },
+    {
+      "segment_index": 58,
+      "paragraph_index": 58,
+      "chunk_index": 1,
+      "chars": 31,
+      "preview": "图4-4 导航策略前后母线级峰值充电负荷空间分布（500辆车）"
+    },
+    {
+      "segment_index": 59,
+      "paragraph_index": 59,
+      "chunk_index": 1,
+      "chars": 155,
+      "preview": "无序充电策略下，充电负荷在各母线之间近似均匀分布。这主要由出行链模型中交通区域到母线的随机映射决定，32条母线中大多数都会承担一定充电负荷，峰值功率范围约为0—"
+    },
+    {
+      "segment_index": 60,
+      "paragraph_index": 60,
+      "chunk_index": 1,
+      "chars": 333,
+      "preview": "采用导航策略后，充电负荷的空间分布发生明显变化：负荷集中到少数几条母线上，大量母线的充电负荷则降为零。这一现象可以从两个层面理解。首先，就近充电和导航策略的候选"
+    },
+    {
+      "segment_index": 61,
+      "paragraph_index": 61,
+      "chunk_index": 1,
+      "chars": 17,
+      "preview": "#### 4.3.2 母线电压改善"
+    },
+    {
+      "segment_index": 62,
+      "paragraph_index": 62,
+      "chunk_index": 1,
+      "chars": 194,
+      "preview": "为直观展示导航策略在高渗透率下的电压改善效果，图4-5选取$N = 130$（明显高于无序充电承载力97辆，略高于导航策略承载力127辆）下的一个典型蒙特卡洛场"
+    },
+    {
+      "segment_index": 63,
+      "paragraph_index": 63,
+      "chunk_index": 1,
+      "chars": 58,
+      "preview": "![图4-5 关键时刻全网电压剖面对比](../../output/ch4_figures/fig_4_5.png)"
+    },
+    {
+      "segment_index": 64,
+      "paragraph_index": 64,
+      "chunk_index": 1,
+      "chars": 37,
+      "preview": "图4-5 关键时刻全网电压剖面对比（$N = 130$，第1天21:30）"
+    },
+    {
+      "segment_index": 65,
+      "paragraph_index": 65,
+      "chunk_index": 1,
+      "chars": 279,
+      "preview": "在该场景下，无序充电策略有4条母线（母线29—32）电压低于0.95 p.u.下限，最低电压出现在母线31（0.9487 p.u.），已经触发电压越限。导航策略"
+    },
+    {
+      "segment_index": 66,
+      "paragraph_index": 66,
+      "chunk_index": 1,
+      "chars": 210,
+      "preview": "需要指出的是，即便在导航策略仍可维持电压安全的高渗透率工况下，两种策略的电压差异也主要处于1—2 mpu量级。原因与改进IEEE 33系统含联络线的环网拓扑有关"
+    },
+    {
+      "segment_index": 67,
+      "paragraph_index": 67,
+      "chunk_index": 1,
+      "chars": 172,
+      "preview": "由此可见，导航策略提升承载力的关键，并不是在某个固定$N$值下大幅抬高全网电压，而是持续将充电负荷从薄弱母线撤离，使系统在更高接入规模下仍能避免电压越限。图4-"
+    },
+    {
+      "segment_index": 68,
+      "paragraph_index": 68,
+      "chunk_index": 1,
+      "chars": 19,
+      "preview": "#### 4.3.3 导航因子消融分析"
+    },
+    {
+      "segment_index": 69,
+      "paragraph_index": 69,
+      "chunk_index": 1,
+      "chars": 157,
+      "preview": "为量化五个评分因子对承载力的边际贡献，本节采用逐步消融方式，在出行链模型下对比不同因子组合对应的承载力结果。消融实验中，其余参数均与基准设定一致（$\\lambd"
+    },
+    {
+      "segment_index": 70,
+      "paragraph_index": 70,
+      "chunk_index": 1,
+      "chars": 17,
+      "preview": "> 表4-1 导航因子消融分析结果"
+    },
+    {
+      "segment_index": 71,
+      "paragraph_index": 71,
+      "chunk_index": 1,
+      "chars": 850,
+      "preview": "| 配置 | 启用因子 | $N^*$ | 相对无序提升 |\n|------|---------|:-----:|:---------:|\n| 无序充电 | —"
+    },
+    {
+      "segment_index": 72,
+      "paragraph_index": 71,
+      "chunk_index": 2,
+      "chars": 23,
+      "preview": "ax温度降低 | 126 | +29.9% |"
+    },
+    {
+      "segment_index": 73,
+      "paragraph_index": 72,
+      "chunk_index": 1,
+      "chars": 14,
+      "preview": "从消融结果可以得到四点认识。"
+    },
+    {
+      "segment_index": 74,
+      "paragraph_index": 73,
+      "chunk_index": 1,
+      "chars": 313,
+      "preview": "第一，承载力提升可以分解为两个层级的空间引导效应。从无序充电到就近充电，$N^*$由97辆提高到109辆（+12辆），这一增益主要来自\"将充电负荷从全部32条母"
+    },
+    {
+      "segment_index": 75,
+      "paragraph_index": 74,
+      "chunk_index": 1,
+      "chars": 629,
+      "preview": "第二，动态因子的逐项消融显示，各因子的边际作用并不相同。完全禁用电压感知机制（包括候选可行性筛选与$w_{\\text{voltage}}$评分因子）后，无论是否"
+    },
+    {
+      "segment_index": 76,
+      "paragraph_index": 75,
+      "chunk_index": 1,
+      "chars": 250,
+      "preview": "第三，Softmax采样温度$\\tau$对最终$N^*$的影响不超过1辆。默认温度$\\tau = 0.35$下$N^* = 127$辆，将温度提高至1.0（增强"
+    },
+    {
+      "segment_index": 77,
+      "paragraph_index": 76,
+      "chunk_index": 1,
+      "chars": 256,
+      "preview": "第四，其他参数敏感性分析进一步表明，导航策略在合理参数范围内具有较好的稳定性。将距离惩罚指数$\\beta$从1.0增大到2.0时，$N^*$仅由127辆微降至1"
+    },
+    {
+      "segment_index": 78,
+      "paragraph_index": 77,
+      "chunk_index": 1,
+      "chars": 14,
+      "preview": "### 4.4 策略综合对比"
+    },
+    {
+      "segment_index": 79,
+      "paragraph_index": 78,
+      "chunk_index": 1,
+      "chars": 58,
+      "preview": "本节分别在出行链模型和会话模型两种充电负荷模型下，运行全部策略的蒙特卡洛承载力评估，以量化各策略对$N^*$的影响。"
+    },
+    {
+      "segment_index": 80,
+      "paragraph_index": 79,
+      "chunk_index": 1,
+      "chars": 29,
+      "preview": "图4-6以分组柱状图展示了各策略在两种模型下的承载力结果。"
+    },
+    {
+      "segment_index": 81,
+      "paragraph_index": 80,
+      "chunk_index": 1,
+      "chars": 54,
+      "preview": "![图4-6 充电策略N*对比](../../output/ch4_figures/fig_4_6.png)"
+    },
+    {
+      "segment_index": 82,
+      "paragraph_index": 81,
+      "chunk_index": 1,
+      "chars": 59,
+      "preview": "图4-6 充电策略承载力对比（改进IEEE 33，$\\lambda = 1.0$，$P_{ch} = 7.2$ kW）"
+    },
+    {
+      "segment_index": 83,
+      "paragraph_index": 82,
+      "chunk_index": 1,
+      "chars": 15,
+      "preview": "> 表4-2 充电策略对比汇总"
+    },
+    {
+      "segment_index": 84,
+      "paragraph_index": 83,
+      "chunk_index": 1,
+      "chars": 283,
+      "preview": "| 策略名称 | 出行链模型 $N^*$ | 会话模型 $N^*$ | 出行链相对无序提升 |\n|---------|:-----------:|:------"
+    },
+    {
+      "segment_index": 85,
+      "paragraph_index": 84,
+      "chunk_index": 1,
+      "chars": 19,
+      "preview": "由表4-2和图4-6可以得到以下结论。"
+    },
+    {
+      "segment_index": 86,
+      "paragraph_index": 85,
+      "chunk_index": 1,
+      "chars": 331,
+      "preview": "在所有策略中，导航策略的提升最为明显。在出行链模型下，静态导航和动态导航都将承载力提升至127辆，较无序充电基线97辆提高约31%。4.3.3节消融分析表明，这"
+    },
+    {
+      "segment_index": 87,
+      "paragraph_index": 86,
+      "chunk_index": 1,
+      "chars": 149,
+      "preview": "就近充电策略带来中等程度的提升。出行链模型下$N^* = 109$，较无序充电提高12.4%。就近选择的空间分散效应使部分车辆避开薄弱母线，但由于缺少对电网运行"
+    },
+    {
+      "segment_index": 88,
+      "paragraph_index": 87,
+      "chunk_index": 1,
+      "chars": 320,
+      "preview": "有序充电的效果高度依赖随机延迟机制，并且在两种模型中表现差异较大。在出行链模型下，无延迟有序充电$N^* = 84$，不仅没有提升承载力，反而较无序充电降低13"
+    },
+    {
+      "segment_index": 89,
+      "paragraph_index": 88,
+      "chunk_index": 1,
+      "chars": 207,
+      "preview": "在会话模型下，有序充电的表现则明显不同。无延迟版本的$N^*$仅为40辆，降幅达61%，原因是会话模型充电起始时间集中在19:00前后，无延迟有序充电又将其全部"
+    },
+    {
+      "segment_index": 90,
+      "paragraph_index": 89,
+      "chunk_index": 1,
+      "chars": 151,
+      "preview": "此外，两种模型的承载力差异也具有方法论意义。无序充电下，出行链模型97辆和会话模型102辆的$N^*$较为接近，但在有序充电策略下二者明显分化。出行链模型刻画了"
+    },
+    {
+      "segment_index": 91,
+      "paragraph_index": 90,
+      "chunk_index": 1,
+      "chars": 15,
+      "preview": "### 4.5 参数敏感性分析"
+    },
+    {
+      "segment_index": 92,
+      "paragraph_index": 91,
+      "chunk_index": 1,
+      "chars": 93,
+      "preview": "承载力$N^*$受系统基础负荷水平和电动汽车充电功率两个关键参数影响。本节在出行链模型无序充电策略下，对基础负荷缩放因子$\\lambda$和单车充电功率$P_{"
+    },
+    {
+      "segment_index": 93,
+      "paragraph_index": 92,
+      "chunk_index": 1,
+      "chars": 29,
+      "preview": "图4-7以热力图形式展示了$N^*$随两个参数的变化趋势。"
+    },
+    {
+      "segment_index": 94,
+      "paragraph_index": 93,
+      "chunk_index": 1,
+      "chars": 54,
+      "preview": "![图4-7 参数敏感性热力图](../../output/ch4_figures/fig_4_7.png)"
+    },
+    {
+      "segment_index": 95,
+      "paragraph_index": 94,
+      "chunk_index": 1,
+      "chars": 31,
+      "preview": "图4-7 参数敏感性分析：$N^*$随充电功率与负荷水平的变化"
+    },
+    {
+      "segment_index": 96,
+      "paragraph_index": 95,
+      "chunk_index": 1,
+      "chars": 15,
+      "preview": "> 表4-3 参数扫描详细结果"
+    },
+    {
+      "segment_index": 97,
+      "paragraph_index": 96,
+      "chunk_index": 1,
+      "chars": 257,
+      "preview": "| $\\lambda$ | $P_{ch}$ = 3.7 kW | $P_{ch}$ = 7.2 kW | $P_{ch}$ = 11.0 kW | $P_{c"
+    },
+    {
+      "segment_index": 98,
+      "paragraph_index": 97,
+      "chunk_index": 1,
+      "chars": 15,
+      "preview": "参数敏感性分析揭示了以下规律。"
+    },
+    {
+      "segment_index": 99,
+      "paragraph_index": 98,
+      "chunk_index": 1,
+      "chars": 280,
+      "preview": "在两个参数中，充电功率对承载力影响最为显著。在$\\lambda = 1.0$条件下，充电功率从3.7 kW慢充增加到22 kW快充时，$N^*$由184辆降至4"
+    },
+    {
+      "segment_index": 100,
+      "paragraph_index": 99,
+      "chunk_index": 1,
+      "chars": 219,
+      "preview": "基础负荷水平与承载力之间呈强非线性反比关系。在$P_{ch} = 7.2$ kW条件下，$\\lambda$从0.5增加到1.0时，$N^*$由992辆骤降至97"
+    },
+    {
+      "segment_index": 101,
+      "paragraph_index": 100,
+      "chunk_index": 1,
+      "chars": 222,
+      "preview": "两个参数之间还存在明显交互效应。在低$\\lambda$、低$P_{ch}$的有利组合$\\lambda = 0.5$、$P_{ch} = 3.7$ kW下，承载力"
+    },
+    {
+      "segment_index": 102,
+      "paragraph_index": 101,
+      "chunk_index": 1,
+      "chars": 12,
+      "preview": "### 4.6 结果讨论"
+    },
+    {
+      "segment_index": 103,
+      "paragraph_index": 102,
+      "chunk_index": 1,
+      "chars": 27,
+      "preview": "#### 4.6.1 出行链模型与会话模型的承载力差异"
+    },
+    {
+      "segment_index": 104,
+      "paragraph_index": 103,
+      "chunk_index": 1,
+      "chars": 175,
+      "preview": "两种充电负荷模型得到的承载力差异具有方法论含义。在无序充电策略下，出行链模型（$N^* = 97$）与会话模型（$N^* = 102$）结果较为接近；但在有序充"
+    },
+    {
+      "segment_index": 105,
+      "paragraph_index": 104,
+      "chunk_index": 1,
+      "chars": 298,
+      "preview": "出行链模型通过日内多次\"出行—驻留—充电\"循环，使充电起始时间自然分布在傍晚到深夜的较宽时段内。有序充电再把这些已经分散的起始时间压缩到22:00—06:00窗"
+    },
+    {
+      "segment_index": 106,
+      "paragraph_index": 105,
+      "chunk_index": 1,
+      "chars": 141,
+      "preview": "这一对比说明，充电负荷建模精细程度会系统性影响策略效果评估，不同模型可能对同一策略给出相反判断。两种模型在有序充电实现口径上的差异，即出行链模型存在充电事件取消"
+    },
+    {
+      "segment_index": 107,
+      "paragraph_index": 106,
+      "chunk_index": 1,
+      "chars": 27,
+      "preview": "#### 4.6.2 导航策略\"空间换容量\"的作用机理"
+    },
+    {
+      "segment_index": 108,
+      "paragraph_index": 107,
+      "chunk_index": 1,
+      "chars": 303,
+      "preview": "导航策略提升承载力的核心机理可以概括为\"空间换容量\"：在不增加物理设备投资的前提下，通过充电负荷空间重分布释放系统隐性容量。4.3.3节的消融分析对这一机理作了"
+    },
+    {
+      "segment_index": 109,
+      "paragraph_index": 108,
+      "chunk_index": 1,
+      "chars": 381,
+      "preview": "在强健母线侧，充电负荷被引导到电压裕度充足的站点。虽然单条目标母线的峰值充电功率较高（如图4-4所示），但这些母线基线电压明显高于下限，即使承受较大充电负荷，也"
+    },
+    {
+      "segment_index": 110,
+      "paragraph_index": 109,
+      "chunk_index": 1,
+      "chars": 141,
+      "preview": "需要指出的是，在改进IEEE 33节点系统含联络线的环网拓扑下，联络线增强了馈线间电压耦合，导航策略的空间重分布效果会受到一定限制。即使负荷集中在某些母线，也仍"
+    },
+    {
+      "segment_index": 111,
+      "paragraph_index": 110,
+      "chunk_index": 1,
+      "chars": 22,
+      "preview": "#### 4.6.3 有序充电需配合延迟分散"
+    },
+    {
+      "segment_index": 112,
+      "paragraph_index": 111,
+      "chunk_index": 1,
+      "chars": 249,
+      "preview": "有序充电的核心价值在于利用谷时容量裕度，但实际效果很大程度上取决于同步性如何处理。本文结果表明，若不施加延迟分散，有序充电可能因\"反弹效应\"而适得其反。在出行链"
+    },
+    {
+      "segment_index": 113,
+      "paragraph_index": 112,
+      "chunk_index": 1,
+      "chars": 26,
+      "preview": "#### 4.6.4 电压约束作为唯一瓶颈的工程含义"
+    },
+    {
+      "segment_index": 114,
+      "paragraph_index": 113,
+      "chunk_index": 1,
+      "chars": 91,
+      "preview": "第3章的分项约束分析表明，在改进IEEE 33节点系统中，电压约束是决定承载力边界的唯一瓶颈，线路热稳定和变压器容量约束在全部策略和参数组合下均保持满足。这一结"
+    },
+    {
+      "segment_index": 115,
+      "paragraph_index": 114,
+      "chunk_index": 1,
+      "chars": 184,
+      "preview": "一方面，承载力提升应优先从电压裕度入手。无论采用导航策略进行空间引导，还是加装无功补偿设备、优化网络结构，都应把提升薄弱母线电压作为重要目标。另一方面，线路和变"
+    },
+    {
+      "segment_index": 116,
+      "paragraph_index": 115,
+      "chunk_index": 1,
+      "chars": 20,
+      "preview": "#### 4.6.5 蒙特卡洛评估收敛性"
+    },
+    {
+      "segment_index": 117,
+      "paragraph_index": 116,
+      "chunk_index": 1,
+      "chars": 119,
+      "preview": "蒙特卡洛承载力评估结果是否可靠，与场景数$S$是否充分密切相关。图4-8以出行链模型无序充电策略为对象，在不同场景数$S = \\{5, 10, 15, 20, "
+    },
+    {
+      "segment_index": 118,
+      "paragraph_index": 117,
+      "chunk_index": 1,
+      "chars": 55,
+      "preview": "![图4-8 MC评估收敛性验证](../../output/ch4_figures/fig_4_8.png)"
+    },
+    {
+      "segment_index": 119,
+      "paragraph_index": 118,
+      "chunk_index": 1,
+      "chars": 28,
+      "preview": "图4-8 蒙特卡洛评估收敛性验证（出行链模型，无序充电）"
+    },
+    {
+      "segment_index": 120,
+      "paragraph_index": 119,
+      "chunk_index": 1,
+      "chars": 238,
+      "preview": "图中可以看到较清晰的收敛特征：当$S = 5$时，3次独立运行得到的$N^*$分别为91、133、108，均值111辆，标准差17.2辆，结果波动较大。随着$S"
+    },
+    {
+      "segment_index": 121,
+      "paragraph_index": 120,
+      "chunk_index": 1,
+      "chars": 404,
+      "preview": "需要指出的是，不同随机种子下$N^*$仍会存在约10%左右的变异（如$S = 20$时范围为97—120辆）。这反映了出行链蒙特卡洛抽样的固有随机性，不同出行链"
+    },
+    {
+      "segment_index": 122,
+      "paragraph_index": 121,
+      "chunk_index": 1,
+      "chars": 14,
+      "preview": "#### 4.6.6 局限性"
+    },
+    {
+      "segment_index": 123,
+      "paragraph_index": 122,
+      "chunk_index": 1,
+      "chars": 345,
+      "preview": "本文分析仍存在若干局限。在测试系统方面，本文以改进IEEE 33节点标准算例为平台，该系统规模较小，仅含33个节点和37条支路，电压耦合关系相对简单，相关结论能"
+    },
+    {
+      "segment_index": 124,
+      "paragraph_index": 123,
+      "chunk_index": 1,
+      "chars": 12,
+      "preview": "### 4.7 本章小结"
+    },
+    {
+      "segment_index": 125,
+      "paragraph_index": 124,
+      "chunk_index": 1,
+      "chars": 33,
+      "preview": "本章建立了四类充电策略模型，并分析了不同策略对配电网承载力的影响。"
+    },
+    {
+      "segment_index": 126,
+      "paragraph_index": 125,
+      "chunk_index": 1,
+      "chars": 157,
+      "preview": "在策略建模方面，本章从时间调度和空间引导两个维度出发，建立无序充电、就近充电、有序充电和充电导航四类策略模型。其中，有序充电策略引入随机延迟机制，用于缓解同步充"
+    },
+    {
+      "segment_index": 127,
+      "paragraph_index": 126,
+      "chunk_index": 1,
+      "chars": 137,
+      "preview": "在有序充电效果方面，结果表明，未施加随机延迟的有序充电会在充电窗口起始时刻形成峰值功率1855 kW的新尖峰，较无序充电峰值1473 kW反而增加26%；引入随"
+    },
+    {
+      "segment_index": 128,
+      "paragraph_index": 127,
+      "chunk_index": 1,
+      "chars": 360,
+      "preview": "在导航策略方面，母线级负荷空间分布分析揭示了\"空间换容量\"的作用机理：导航策略将充电负荷从薄弱母线撤离，集中引导至电压裕度充足的强健母线，使薄弱母线在高渗透率下"
+    },
+    {
+      "segment_index": 129,
+      "paragraph_index": 128,
+      "chunk_index": 1,
+      "chars": 224,
+      "preview": "在策略综合对比方面，出行链和会话两种模型下的多策略承载力结果表明，导航策略在出行链模型下将$N^*$从97辆提升至127辆，增幅达31%，是所有策略中提升最明显"
+    },
+    {
+      "segment_index": 130,
+      "paragraph_index": 129,
+      "chunk_index": 1,
+      "chars": 241,
+      "preview": "在参数敏感性方面，充电功率$P_{ch}$对承载力影响最为显著。在$\\lambda = 1.0$下，$P_{ch}$从3.7 kW慢充提高到22 kW快充时，$"
+    },
+    {
+      "segment_index": 131,
+      "paragraph_index": 130,
+      "chunk_index": 1,
+      "chars": 4,
+      "preview": "---\n"
+    }
+  ]
+}
