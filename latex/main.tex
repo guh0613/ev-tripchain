@@ -892,6 +892,8 @@
 
     基础负荷水平通过缩放因子$\lambda$进行调整，即将所有负荷节点的有功负荷和无功负荷同时乘以$\lambda$，以模拟不同负荷水平下的配电网运行状态。$\lambda$的含义为：以IEEE 33 节点标准测试系统原始负荷数据\supercite{ref22}作为基准，$\lambda$表示对该基准负荷进行同比例缩放。本文默认取$\lambda = 1.0$，也就是保持标准测试系统原始负荷水平不变，对应额定设计工况下的运行状态。在参数敏感性分析中，本文进一步扫描$\lambda \in \{0.5, 0.6, \ldots, 1.0\}$，用于考察基础负荷水平变化对承载力的影响。其中，$\lambda < 1.0$可理解为轻载工况，如工业负荷低谷或新建片区初期；$\lambda = 1.0$对应满载工况。
 
+    图 \ref{fig:baseline_voltage_comparison}给出了无电动汽车接入且$\lambda = 1.0$时，标准系统与改进系统的基线电压分布。标准辐射状系统中，末端母线17电压仅为0.913 p.u.，已经明显低于0.95 p.u.运行下限。这意味着标准系统在接入额外充电负荷之前就存在电压越限，不能直接作为承载力评估平台。闭合5条联络线后，馈线之间形成了功率互济通道，全网最低电压由标准系统的0.913 p.u.（母线17）提高到改进系统的0.953 p.u.（母线31），所有母线电压均满足0.95 p.u.下限要求。这样，系统在评估电动汽车接入能力时具备了较合理的初始电压裕度。
+
     \begin{figure}[htbp]
         \centering
         \includegraphics[width=0.86\textwidth]{fig_3_2.png}
@@ -1093,6 +1095,8 @@
         \label{fig:risk_curve}
     \end{figure}
 
+    图 \ref{fig:risk_curve}展示出行链模型无序充电策略下的风险曲线。横轴为电动汽车接入数量$N$，纵轴为硬约束越限概率$\hat{\pi}(N)$，红色阴影区表示Wilson 95\%置信区间。$N$较小时，越限概率为0或接近0，系统运行安全；随着$N$增加，越限概率逐步上升；当$N$超过临界值$N^*$后，越限概率迅速增大并接近1。风险容忍度$\varepsilon = 0.05$的水平线与曲线交点，即对应承载力边界$N^*$。
+
     为进一步判断是哪类硬约束限制了承载力，图 \ref{fig:constraint_decomposition}将总越限概率分解为三类硬约束的分项越限概率。
 
     \begin{figure}[htbp]
@@ -1101,6 +1105,8 @@
         \caption{分项约束越限概率分解（出行链模型，无序充电）}
         \label{fig:constraint_decomposition}
     \end{figure}
+
+    图 \ref{fig:constraint_decomposition}显示，在改进IEEE 33节点系统中，电压越限概率与总越限概率几乎完全重合，而线路过载概率、变压器过载概率在整个搜索范围内始终为0。这说明在本文所设定的系统参数和充电功率条件下，电压约束是决定承载力边界的唯一瓶颈；线路热稳定和变压器容量仍保有充足裕度。该结果也与Fatima等\supercite{ref6}综述中“约57\%的文献将电压越限作为承载力主要约束”的结论相吻合。
 
     \subsection{辅助评估方法}
 
@@ -1143,12 +1149,16 @@
     \end{equation}
     第三种为代表性模板分配，更接近确定性方法的处理方式。该假设利用确定性方法中提取的充电模板$\bar{p}_{t,b}$描述充电负荷时空分布。此时各母线在每个时步的电压变化为$\Delta V_{i,t}(N) = N \cdot \sum_{j \in \mathcal{B}} S_{ij} \cdot \bar{p}_{t,j}$，承载力即为使所有母线、所有时步均满足电压约束的最大$N$值。
 
+    图 \ref{fig:voltage_margin_sensitivity}展示各母线基线电压裕度和灵敏度对角元素的分布。
+
     \begin{figure}[htbp]
         \centering
         \includegraphics[width=0.86\textwidth]{fig_3_8.png}
         \caption{各母线基线电压裕度与灵敏度分布}
         \label{fig:voltage_margin_sensitivity}
     \end{figure}
+
+    图 \ref{fig:voltage_margin_sensitivity}上子图为各母线电压裕度$V_{\text{base},i} - V_{\min}$，单位为mpu；下子图为灵敏度对角元素$S_{ii}$。通常来看，电压裕度较小且灵敏度绝对值较大的母线，就是系统中更容易受充电负荷影响的薄弱环节。这些母线不仅初始电压更接近下限，也对有功负荷增量更敏感。
 
     \subsubsection{三种方法对比分析}
 
