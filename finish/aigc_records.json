@@ -132,6 +132,21 @@
         "scope": "第3章（配电网承载力概率评估方法）",
         "score_total": 61,
         "timestamp": "2026-04-30T01:30:44+08:00"
+      },
+      {
+        "round": 2,
+        "prompt": "prompts/baibaiAIGC2.md",
+        "prompt_profile": "cn",
+        "input_path": "finish/intermediate/论文初稿_第3章_round1.txt",
+        "output_path": "finish/intermediate/论文初稿_第3章_round2.txt",
+        "chunk_limit": 850,
+        "input_segment_count": 147,
+        "output_segment_count": 147,
+        "manifest_path": "finish/intermediate/论文初稿_第3章_round2_manifest.json",
+        "final_output_path": "docs/thesis/论文初稿.md",
+        "scope": "第3章（配电网承载力概率评估方法）；参考 docs/aigc高片段.md 中第三章相关高疑似片段，完成第二轮并同步合并到 markdown 论文版本与 finish/论文初稿_降AI.md",
+        "score_total": 66,
+        "timestamp": "2026-05-02T00:11:27+08:00"
       }
     ]
   },
