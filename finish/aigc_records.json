@@ -153,5 +153,45 @@
         "timestamp": "2026-05-01T23:00:44+08:00"
       }
     ]
+  },
+  "docs/thesis/论文初稿.md#中文摘要精简": {
+    "origin_path": "docs/thesis/论文初稿.md#中文摘要精简",
+    "rounds": [
+      {
+        "round": 1,
+        "prompt": "prompts/baibaiAIGC1.md",
+        "prompt_profile": "cn",
+        "input_path": "docs/thesis/论文初稿.md",
+        "output_path": "finish/intermediate/论文初稿_中文摘要精简_round1.txt",
+        "chunk_limit": 850,
+        "input_segment_count": 1,
+        "output_segment_count": 1,
+        "manifest_path": "finish/intermediate/论文初稿_中文摘要精简_round1_manifest.json",
+        "final_output_path": "docs/thesis/论文初稿.md",
+        "scope": "中文摘要；按导师意见压缩篇幅，去除具体参数和结果，保留核心研究内容，并同步合并到 markdown、LaTeX 与 finish/论文初稿_降AI.md",
+        "score_total": 65,
+        "timestamp": "2026-05-01T23:38:16+08:00"
+      }
+    ]
+  },
+  "docs/thesis/论文初稿.md#英文Abstract精简": {
+    "origin_path": "docs/thesis/论文初稿.md#英文Abstract精简",
+    "rounds": [
+      {
+        "round": 1,
+        "prompt": "prompts/baibaiaigc-en.md",
+        "prompt_profile": "en",
+        "input_path": "docs/thesis/论文初稿.md",
+        "output_path": "finish/intermediate/论文初稿_英文Abstract精简_round1.txt",
+        "chunk_limit": 850,
+        "input_segment_count": 2,
+        "output_segment_count": 2,
+        "manifest_path": "finish/intermediate/论文初稿_英文Abstract精简_round1_manifest.json",
+        "final_output_path": "docs/thesis/论文初稿.md",
+        "scope": "英文Abstract；按导师意见压缩篇幅，去除具体参数和结果，保留核心研究内容，并同步合并到 markdown、LaTeX 与 finish/论文初稿_降AI.md",
+        "score_total": 64,
+        "timestamp": "2026-05-01T23:38:16+08:00"
+      }
+    ]
   }
 }

@@ -1,0 +1,13 @@
+{
+  "doc_id": "docs/thesis/论文初稿.md#中文摘要精简",
+  "prompt_profile": "cn",
+  "round": 1,
+  "chunk_limit": 850,
+  "segments": [
+    {
+      "paragraph_index": 1,
+      "chunk_index": 1,
+      "char_count": 368
+    }
+  ]
+}

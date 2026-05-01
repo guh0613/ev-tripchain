@@ -1,0 +1,18 @@
+{
+  "doc_id": "docs/thesis/论文初稿.md#英文Abstract精简",
+  "prompt_profile": "en",
+  "round": 1,
+  "chunk_limit": 850,
+  "segments": [
+    {
+      "paragraph_index": 1,
+      "chunk_index": 1,
+      "char_count": 780
+    },
+    {
+      "paragraph_index": 1,
+      "chunk_index": 2,
+      "char_count": 627
+    }
+  ]
+}
