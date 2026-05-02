@@ -562,34 +562,34 @@
 
     \begin{figure}[htbp]
         \centering
-        \includegraphics[width=0.82\textwidth]{fig_2_2.png}
+        \includegraphics[width=0.75\textwidth]{fig_2_2.png}
         \caption{出行链关键参数概率分布（20000 辆车采样）}
         \label{fig:trip_chain_distribution}
     \end{figure}
 
     上述参数的取值汇总于表 \ref{tab:trip_chain_params}。
 
-    \begin{table}[htbp]
+    \begin{table}[!htbp]
         \centering
         \caption{出行链模型参数设定}
         \label{tab:trip_chain_params}
         \zihao{5}
         \setlength{\tabcolsep}{4pt}
         \renewcommand{\arraystretch}{1.3}
-        \begin{tabular}{>{\raggedright\arraybackslash}p{3.0cm} >{\centering\arraybackslash}p{1.9cm} >{\centering\arraybackslash}p{2.8cm} >{\centering\arraybackslash}p{2.6cm} >{\centering\arraybackslash}p{1.5cm}}
+        \begin{tabular}{l >{\centering\arraybackslash}p{1.6cm} >{\centering\arraybackslash}p{2.6cm} >{\centering\arraybackslash}p{2.0cm} >{\centering\arraybackslash}p{2.8cm}}
             \toprule
-            参数名称 & 符号 & 取值 & 分布类型 & 文献来源 \\
+            参数名称 & 符号 & 取值 & 分布类型 & 来源 \\
             \midrule
-            首次出发时刻均值 & $\mu_t$ & 07:30（450 min） & 正态分布 & \inlinecite{ref8} \\
-            首次出发时刻标准差 & $\sigma_t$ & 35 min & 正态分布 & \inlinecite{ref10}基础上放宽 \\
-            行驶距离均值 & $\bar{d}$ & 20 km & 对数正态分布 & \inlinecite{ref7,ref8} \\
-            行驶距离标准差 & $s_d$ & 10 km & 对数正态分布 & \inlinecite{ref7,ref8} \\
-            工作驻留时长均值 & $\mu_w$ & 520 min & 截断正态分布 & \inlinecite{ref11,ref15}结合工程设定 \\
-            工作驻留时长标准差 & $\sigma_w$ & 45 min & 截断正态分布 & 工程合理设定 \\
-            中间停靠次数 & $\lambda_{\text{other}}$ & 1.0 & 泊松分布 & \inlinecite{ref9} \\
-            中间停靠驻留时长均值 & $\mu_o$ & 50 min & 截断正态分布 & \inlinecite{ref8,ref11}范围内取值 \\
-            中间停靠驻留时长标准差 & $\sigma_o$ & 25 min & 截断正态分布 & 工程合理设定 \\
-            单位里程行驶时间 & $\alpha$ & 1.8 min/km & 确定性换算 & \inlinecite{ref15}范围内取值 \\
+            首次出发时刻均值 & $\mu_t$ & 07:30（450\,min） & 正态 & \inlinecite{ref8} \\
+            首次出发时刻标准差 & $\sigma_t$ & 35\,min & 正态 & \inlinecite{ref10}，放宽 \\
+            行驶距离均值 & $\bar{d}$ & 20\,km & 对数正态 & \inlinecite{ref7,ref8} \\
+            行驶距离标准差 & $s_d$ & 10\,km & 对数正态 & \inlinecite{ref7,ref8} \\
+            工作驻留时长均值 & $\mu_w$ & 520\,min & 截断正态 & \inlinecite{ref11,ref15} \\
+            工作驻留时长标准差 & $\sigma_w$ & 45\,min & 截断正态 & 工程设定 \\
+            中间停靠次数 & $\lambda_{\text{other}}$ & 1.0 & 泊松 & \inlinecite{ref9} \\
+            中间停靠驻留时长均值 & $\mu_o$ & 50\,min & 截断正态 & \inlinecite{ref8,ref11} \\
+            中间停靠驻留时长标准差 & $\sigma_o$ & 25\,min & 截断正态 & 工程设定 \\
+            单位里程行驶时间 & $\alpha$ & 1.8\,min/km & 确定性 & \inlinecite{ref15} \\
             交通区域数量 & $n_{\text{zone}}$ & 50 & --- & \inlinecite{ref10} \\
             \bottomrule
         \end{tabular}
@@ -1405,21 +1405,22 @@
 
     为量化五个评分因子对承载力的边际贡献，本节采用逐步消融方式，在出行链模型下对比不同因子组合对应的承载力结果。消融实验中，其余参数均与基准设定一致（$\lambda = 1.0$、$P_{ch} = 7.2$ kW、$S = 20$ 个场景、$\text{seed} = 42$），只改变导航策略的因子配置或参数取值。
 
-    \begin{table}[H]
+    \begin{table}[!htbp]
         \centering
         \caption{导航因子消融分析结果}
         \label{tab:navigation_ablation}
         \setlength{\tabcolsep}{4pt}
-        \begin{tabularx}{\textwidth}{>{\centering\arraybackslash}p{3.6cm} >{\centering\arraybackslash}X >{\centering\arraybackslash}p{1.0cm} >{\centering\arraybackslash}p{1.7cm}}
+        \renewcommand{\arraystretch}{1.3}
+        \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.6cm} >{\raggedright\arraybackslash}X >{\centering\arraybackslash}p{0.8cm} >{\centering\arraybackslash}p{1.4cm}}
             \toprule
-            配置 & 启用因子 & $N^*$ & 相对无序提升 \\
+            配置 & 启用因子 & $N^*$ & 提升 \\
             \midrule
             无序充电 & --- & 97 & 基准 \\
             就近充电 & 距离（确定性） & 109 & $+12.4\%$ \\
             静态导航（$K = 6$） & $w_{\text{dist}} + w_{\text{score}}$ & 127 & $+30.9\%$ \\
             动态导航（仅 $w_{\text{temporal}}$） & $w_{\text{dist}} + w_{\text{score}} + w_{\text{temporal}}$ & 126 & $+29.9\%$ \\
-            动态导航（禁用 $w_{\text{voltage}}$） & $w_{\text{dist}} + w_{\text{score}} + w_{\text{temporal}} + w_{\text{path}}$ & 126 & $+29.9\%$ \\
-            动态导航（禁用 $w_{\text{path}}$） & $w_{\text{dist}} + w_{\text{score}} + w_{\text{temporal}} + w_{\text{voltage}}$ & 127 & $+30.9\%$ \\
+            动态导航（禁用$w_{\text{voltage}}$） & $w_{\text{dist}} + w_{\text{score}} + w_{\text{temporal}} + w_{\text{path}}$ & 126 & $+29.9\%$ \\
+            动态导航（禁用$w_{\text{path}}$） & $w_{\text{dist}} + w_{\text{score}} + w_{\text{temporal}} + w_{\text{voltage}}$ & 127 & $+30.9\%$ \\
             动态导航（全因子） & 全部五因子 & 127 & $+30.9\%$ \\
             静态导航（$\beta = 2.0$） & $w_{\text{dist}} + w_{\text{score}}$，距离惩罚加大 & 126 & $+29.9\%$ \\
             静态导航（$K = 3$） & $w_{\text{dist}} + w_{\text{score}}$，候选站减少 & 122 & $+25.8\%$ \\
