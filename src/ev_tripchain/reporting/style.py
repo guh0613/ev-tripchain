@@ -52,9 +52,12 @@ def apply_style() -> None:
     plt.rcParams.update(
         {
             "font.family": ["Songti SC", "STHeiti", "SimSong", "serif"],
-            "font.size": 11,
-            "axes.titlesize": 13,
-            "axes.labelsize": 12,
+            "font.size": 14,
+            "axes.titlesize": 16,
+            "axes.labelsize": 15,
+            "xtick.labelsize": 13,
+            "ytick.labelsize": 13,
+            "legend.fontsize": 12,
             "axes.unicode_minus": False,
             "figure.dpi": 150,
             "savefig.dpi": 200,

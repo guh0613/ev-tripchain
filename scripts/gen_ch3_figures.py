@@ -80,14 +80,14 @@ def gen_fig_3_2() -> None:
         f"Bus {idx_std_min}\n{vm_std[idx_std_min]:.3f} p.u.",
         xy=(idx_std_min, vm_std[idx_std_min]),
         xytext=(idx_std_min + 2, vm_std[idx_std_min] - 0.015),
-        fontsize=9, color=COLORS["secondary"],
+        fontsize=12, color=COLORS["secondary"],
         arrowprops=dict(arrowstyle="->", color=COLORS["secondary"]),
     )
     ax.annotate(
         f"Bus {idx_imp_min}\n{vm_imp[idx_imp_min]:.3f} p.u.",
         xy=(idx_imp_min, vm_imp[idx_imp_min]),
         xytext=(idx_imp_min + 2, vm_imp[idx_imp_min] + 0.008),
-        fontsize=9, color=COLORS["primary"],
+        fontsize=12, color=COLORS["primary"],
         arrowprops=dict(arrowstyle="->", color=COLORS["primary"]),
     )
 
@@ -183,7 +183,7 @@ def gen_fig_3_7(risk_data: dict) -> None:
     ax.set_ylabel("越限概率")
     ax.set_title("分项约束越限概率分解（出行链模型，无序充电）")
     ax.set_ylim(-0.02, 1.05)
-    ax.legend(loc="upper left", fontsize=9)
+    ax.legend(loc="upper left", fontsize=12)
     ax.grid(True, alpha=0.3)
 
     _save(fig, "fig_3_7")
@@ -223,7 +223,7 @@ def gen_fig_3_8(cfg) -> None:
         f"Bus {bus_ids[weakest_idx]}\n{margin_mpu[weakest_idx]:.1f} mpu",
         xy=(weakest_idx, margin_mpu[weakest_idx]),
         xytext=(weakest_idx + 3, margin_mpu[weakest_idx] + 2),
-        fontsize=9, color=COLORS["secondary"],
+        fontsize=12, color=COLORS["secondary"],
         arrowprops=dict(arrowstyle="->", color=COLORS["secondary"]),
     )
 
@@ -233,7 +233,7 @@ def gen_fig_3_8(cfg) -> None:
     ax2.set_xlabel("母线编号")
     labels = [str(b) for b in bus_ids]
     ax2.set_xticks(range(0, n, 2))
-    ax2.set_xticklabels([labels[i] for i in range(0, n, 2)], fontsize=8)
+    ax2.set_xticklabels([labels[i] for i in range(0, n, 2)], fontsize=11)
     ax2.grid(axis="y", alpha=0.3)
 
     # Highlight most sensitive bus
@@ -310,7 +310,7 @@ def gen_fig_3_9(cfg) -> None:
 
     fig, ax1 = plt.subplots(figsize=(9, 5))
     bars = ax1.bar(labels, n_stars, color=colors, edgecolor="white", width=0.55)
-    ax1.bar_label(bars, fontsize=11, fontweight="bold", padding=3)
+    ax1.bar_label(bars, fontsize=14, fontweight="bold", padding=3)
     ax1.set_ylabel("$N^*$（最大EV数量）")
     ax1.set_title("承载力评估方法对比（改进IEEE 33，出行链模型，无序充电）")
     ax1.set_ylim(0, max(n_stars) * 1.25 if n_stars else 10)
@@ -321,7 +321,7 @@ def gen_fig_3_9(cfg) -> None:
              label="计算时间")
     ax2.set_ylabel("计算时间（s）")
     ax2.set_ylim(0, max(time_vals) * 1.4 if time_vals else 1)
-    ax2.legend(loc="center right", fontsize=9)
+    ax2.legend(loc="center right", fontsize=12)
 
     _save(fig, "fig_3_9")
 
@@ -414,7 +414,7 @@ def gen_fig_3_10(cfg, n_star: int) -> None:
         f"Bus {min_bus}: {min_vm:.4f} p.u.",
         xy=(min_hour, min_vm),
         xytext=(min_hour + 3, min_vm + 0.005),
-        fontsize=9, color=COLORS["secondary"],
+        fontsize=12, color=COLORS["secondary"],
         arrowprops=dict(arrowstyle="->", color=COLORS["secondary"]),
     )
 

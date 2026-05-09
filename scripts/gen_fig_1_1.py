@@ -28,8 +28,12 @@ def _apply_style() -> None:
     plt.rcParams.update(
         {
             "font.family": ["Songti SC", "STHeiti", "SimSong", "serif"],
-            "font.size": 11,
-            "axes.labelsize": 12,
+            "font.size": 14,
+            "axes.titlesize": 16,
+            "axes.labelsize": 15,
+            "xtick.labelsize": 13,
+            "ytick.labelsize": 13,
+            "legend.fontsize": 12,
             "axes.unicode_minus": False,
             "figure.dpi": 150,
             "savefig.dpi": 200,
@@ -78,7 +82,7 @@ def main() -> None:
         "注：保有量指在使用中的车辆数量（累计销售减去报废数量），\n"
         "包含纯电动及插电式混合动力汽车。",
         xy=(0.02, 0.58), xycoords="axes fraction",
-        fontsize=8, color="gray", va="top",
+        fontsize=11, color="gray", va="top",
     )
 
     OUT_PICS.mkdir(exist_ok=True)

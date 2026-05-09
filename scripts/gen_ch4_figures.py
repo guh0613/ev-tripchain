@@ -186,7 +186,7 @@ def gen_fig_4_3(cfg: ProjectConfig) -> dict:
     ax1.set_xticks(np.arange(0, total_hours + 1e-9, 4))
     _set_panel_xlabel(ax1, "时刻（小时）", "(a) 两日完整充电功率时序")
     ax1.set_ylabel("总充电功率（kW）")
-    ax1.legend(loc="upper left", fontsize=9)
+    ax1.legend(loc="upper left", fontsize=12)
     ax1.grid(True, alpha=0.3)
 
     # Lower panel: overnight window zoom (Day1 22:00 to Day2 06:00)
@@ -207,15 +207,15 @@ def gen_fig_4_3(cfg: ProjectConfig) -> dict:
     ax2.set_xlim(zoom_start, zoom_end)
     ax2.set_xticks(np.arange(zoom_start, zoom_end + 1e-9, 1))
     xlabels = [f"{int(h % 24):02d}:00" for h in np.arange(zoom_start, zoom_end + 1e-9, 1)]
-    ax2.set_xticklabels(xlabels, fontsize=8)
+    ax2.set_xticklabels(xlabels, fontsize=11)
     _set_panel_xlabel(ax2, "时刻", "(b) 跨午夜充电窗口放大视图")
     ax2.set_ylabel("总充电功率（kW）")
-    ax2.legend(loc="upper right", fontsize=9)
+    ax2.legend(loc="upper right", fontsize=12)
     ax2.grid(True, alpha=0.3)
 
     fig.suptitle(
         f"有序充电随机延迟效果对比（出行链模型，{n_vehicles}辆车，2天连续仿真）",
-        fontsize=13,
+        fontsize=16,
     )
     fig.set_constrained_layout_pads(h_pad=0.08, hspace=0.08)
 
@@ -267,7 +267,7 @@ def gen_fig_4_4(cfg: ProjectConfig) -> dict:
     ax.set_title(f"导航策略前后母线级峰值充电负荷空间分布（{n_vehicles}辆车）")
     labels = [str(b) for b in buses]
     ax.set_xticks(x[::2])
-    ax.set_xticklabels([labels[i] for i in range(0, n_bus, 2)], fontsize=8)
+    ax.set_xticklabels([labels[i] for i in range(0, n_bus, 2)], fontsize=11)
     ax.legend(loc="upper right")
     ax.grid(axis="y", alpha=0.3)
 
@@ -277,7 +277,7 @@ def gen_fig_4_4(cfg: ProjectConfig) -> dict:
         f"Bus {buses[max_unc_idx]}\n{peak_unc[max_unc_idx]:.0f} kW",
         xy=(max_unc_idx - width / 2, peak_unc[max_unc_idx]),
         xytext=(max_unc_idx + 3, peak_unc[max_unc_idx] * 0.95),
-        fontsize=9, color=COLORS["secondary"],
+        fontsize=12, color=COLORS["secondary"],
         arrowprops=dict(arrowstyle="->", color=COLORS["secondary"]),
     )
 
@@ -411,13 +411,13 @@ def gen_fig_4_5(cfg: ProjectConfig, n_vehicles: int = 130, seed_offset: int = 20
         f"Bus {best_bus}: {delta_v[best_idx]:+.1f} mpu",
         xy=(best_bus, delta_v[best_idx]),
         xytext=(best_bus - 8, delta_v[best_idx] + max(abs(delta_v)) * 0.25),
-        fontsize=9, color=COLORS["success"],
+        fontsize=12, color=COLORS["success"],
         arrowprops=dict(arrowstyle="->", color=COLORS["success"]),
     )
 
     fig.suptitle(
         f"关键时刻全网电压剖面对比（$N = {n_vehicles}$，{time_label}）",
-        fontsize=13,
+        fontsize=16,
     )
     fig.set_constrained_layout_pads(h_pad=0.08, hspace=0.08)
 
@@ -480,7 +480,7 @@ def _plot_fig_4_6(
         [strategy_labels[k] for k in tc_keys], tc_vals,
         color=tc_colors, edgecolor="white", width=0.6,
     )
-    ax1.bar_label(bars1, fontsize=10, fontweight="bold", padding=3)
+    ax1.bar_label(bars1, fontsize=13, fontweight="bold", padding=3)
     ax1.set_ylabel("$N^*$（最大EV数量）")
     ax1.set_title("出行链模型")
     ax1.set_ylim(0, max(tc_vals) * 1.25 if tc_vals else 10)
@@ -496,7 +496,7 @@ def _plot_fig_4_6(
         [strategy_labels[k] for k in sess_keys], sess_vals,
         color=sess_colors, edgecolor="white", width=0.6,
     )
-    ax2.bar_label(bars2, fontsize=10, fontweight="bold", padding=3)
+    ax2.bar_label(bars2, fontsize=13, fontweight="bold", padding=3)
     ax2.set_ylabel("$N^*$（最大EV数量）")
     ax2.set_title("会话模型")
     ax2.set_ylim(0, max(sess_vals) * 1.25 if sess_vals else 10)
@@ -508,7 +508,7 @@ def _plot_fig_4_6(
     fig.suptitle(
         f"充电策略承载力对比（改进IEEE 33，$\\lambda$={cfg_tc.case.load_scale}，"
         f"$P_{{ch}}$={cfg_tc.ev.charge_power_kw} kW）",
-        fontsize=13,
+        fontsize=16,
     )
     fig.set_constrained_layout_pads(w_pad=0.08, h_pad=0.08, wspace=0.08)
 
@@ -588,7 +588,7 @@ def gen_fig_4_7(cfg: ProjectConfig) -> dict:
     for i in range(len(load_scales)):
         for j in range(len(charge_powers)):
             ax.text(j, i, str(grid[i, j]), ha="center", va="center",
-                    fontsize=12, fontweight="bold",
+                    fontsize=14, fontweight="bold",
                     color="white" if grid[i, j] < np.median(grid) else "black")
 
     ax.set_xticks(range(len(charge_powers)))

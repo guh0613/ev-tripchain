@@ -268,7 +268,7 @@ def fig_ordered_delay(
     ax_full.set_title(
         f"有序充电随机延迟效果对比（{model_label}，{_format_horizon_label(total_hours)}，{n_vehicles}辆EV）"
     )
-    ax_full.legend(loc="upper left", fontsize=9, ncols=2)
+    ax_full.legend(loc="upper left", fontsize=12, ncols=2)
 
     zoom_start = max(0.0, min(18.0, total_hours))
     zoom_end = min(total_hours, 30.0 if total_hours > 24.0 else 24.0)
@@ -290,7 +290,7 @@ def fig_ordered_delay(
             transform=ax_zoom.transAxes,
             ha="right",
             va="top",
-            fontsize=9,
+            fontsize=12,
             bbox={"facecolor": "white", "alpha": 0.82, "edgecolor": COLORS["gray"]},
         )
 
@@ -320,7 +320,7 @@ def fig_strategy_comparison(
     vals_tc = list(tc_results.values())
     colors_tc = strategy_colors[: len(vals_tc)]
     bars1 = ax1.bar(labels_tc, vals_tc, color=colors_tc, edgecolor="white", width=0.65)
-    ax1.bar_label(bars1, fontsize=10, fontweight="bold", padding=3)
+    ax1.bar_label(bars1, fontsize=13, fontweight="bold", padding=3)
     ax1.set_ylabel("$N^*$（最大EV数量）")
     ax1.set_title("出行链 + SOC 模型")
     ax1.set_ylim(0, max(vals_tc) * 1.18 if vals_tc else 10)
@@ -333,7 +333,7 @@ def fig_strategy_comparison(
     vals_s = list(sess_results.values())
     colors_s = strategy_colors[: len(vals_s)]
     bars2 = ax2.bar(labels_s, vals_s, color=colors_s, edgecolor="white", width=0.55)
-    ax2.bar_label(bars2, fontsize=10, fontweight="bold", padding=3)
+    ax2.bar_label(bars2, fontsize=13, fontweight="bold", padding=3)
     ax2.set_ylabel("$N^*$（最大EV数量）")
     ax2.set_title("会话模型")
     ax2.set_ylim(0, max(vals_s) * 1.22 if vals_s else 10)
@@ -343,7 +343,7 @@ def fig_strategy_comparison(
 
     fig.suptitle(
         f"充电策略对比（{case_label}, $\\lambda$={load_scale}, $P_{{ch}}$={charge_kw} kW）",
-        fontsize=13,
+        fontsize=16,
         y=1.02,
     )
     return fig
@@ -363,7 +363,7 @@ def fig_method_comparison(
 
     fig, ax1 = plt.subplots(figsize=(8, 4.5))
     bars = ax1.bar(labels, n_stars, color=method_colors, edgecolor="white", width=0.55)
-    ax1.bar_label(bars, fontsize=11, fontweight="bold", padding=3)
+    ax1.bar_label(bars, fontsize=14, fontweight="bold", padding=3)
     ax1.set_ylabel("$N^*$（最大EV数量）")
     ax1.set_title("承载力评估方法对比")
     ax1.set_ylim(0, max(n_stars) * 1.25 if n_stars else 10)
@@ -375,7 +375,7 @@ def fig_method_comparison(
         ax2.plot(labels, times, "ko--", markersize=6, linewidth=1.2, label="计算时间")
         ax2.set_ylabel("计算时间 (s)")
         ax2.set_ylim(0, max(times) * 1.4 if times else 1)
-        ax2.legend(loc="center right", fontsize=9)
+        ax2.legend(loc="center right", fontsize=12)
 
     return fig
 
@@ -404,7 +404,7 @@ def fig_voltage_sensitivity(
     ax2.set_xlabel("母线编号")
     labels = [str(b) for b in bus_ids]
     ax2.set_xticks(range(0, n, 2))
-    ax2.set_xticklabels([labels[i] for i in range(0, n, 2)], fontsize=8)
+    ax2.set_xticklabels([labels[i] for i in range(0, n, 2)], fontsize=11)
     ax2.grid(axis="y", alpha=0.3)
 
     return fig

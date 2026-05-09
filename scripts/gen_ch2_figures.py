@@ -37,9 +37,12 @@ def _apply_style() -> None:
     plt.rcParams.update(
         {
             "font.family": ["Songti SC", "STHeiti", "SimSong", "serif"],
-            "font.size": 11,
-            "axes.titlesize": 13,
-            "axes.labelsize": 12,
+            "font.size": 14,
+            "axes.titlesize": 16,
+            "axes.labelsize": 15,
+            "xtick.labelsize": 13,
+            "ytick.labelsize": 13,
+            "legend.fontsize": 12,
             "axes.unicode_minus": False,
             "figure.dpi": 150,
             "savefig.dpi": 200,
@@ -184,7 +187,7 @@ def fig_2_1_trip_chain_structure() -> Figure:
         if width > 0.8:
             ax.text(
                 (t0 + t1) / 2, y0 + h / 2, label,
-                ha="center", va="center", fontsize=10, fontweight="bold",
+                ha="center", va="center", fontsize=13, fontweight="bold",
                 color="white" if kind != "travel" else "#1e293b",
             )
 
@@ -197,7 +200,7 @@ def fig_2_1_trip_chain_structure() -> Figure:
                 "", xy=(t1, arrow_y), xytext=(t0, arrow_y),
                 arrowprops=dict(arrowstyle="->", color="#475569", lw=1.8),
             )
-            ax.text(mid, arrow_y + 0.06, label, ha="center", va="bottom", fontsize=8.5, color="#475569")
+            ax.text(mid, arrow_y + 0.06, label, ha="center", va="bottom", fontsize=11, color="#475569")
 
     # Random variable annotations below
     annotations = [
@@ -208,7 +211,7 @@ def fig_2_1_trip_chain_structure() -> Figure:
     for x, txt in annotations:
         ax.annotate(
             txt, xy=(x, y0 - 0.02), xytext=(x, y0 - 0.22),
-            ha="center", va="top", fontsize=8.5, color="#475569",
+            ha="center", va="top", fontsize=11, color="#475569",
             arrowprops=dict(arrowstyle="-[", color="#94a3b8", lw=1),
         )
 
@@ -216,7 +219,7 @@ def fig_2_1_trip_chain_structure() -> Figure:
     dist_pairs = [(7.5, 8.0, "$d_1$"), (16.7, 17.2, "$d_2$"), (18.0, 18.4, "$d_3$")]
     for t0, t1, txt in dist_pairs:
         mid = (t0 + t1) / 2
-        ax.text(mid, y0 - 0.05, txt, ha="center", va="top", fontsize=8, color="#64748b")
+        ax.text(mid, y0 - 0.05, txt, ha="center", va="top", fontsize=11, color="#64748b")
 
     ax.set_xlim(-0.5, 24.5)
     ax.set_ylim(-0.35, 1.05)
@@ -287,7 +290,7 @@ def fig_2_2_distributions() -> Figure:
     ax.set_xlim(0, 24)
     ax.set_xticks(np.arange(0, 25, 4))
     ax.axvline(x=7.5, color=COLORS["secondary"], linestyle="--", linewidth=1, alpha=0.8, label="$\\mu_t$=7:30")
-    ax.legend(fontsize=9)
+    ax.legend(fontsize=12)
 
     ax = axes[0, 1]
     ax.hist(daily_km, bins=60, density=True, color=COLORS["warning"], alpha=0.85, edgecolor="white", linewidth=0.3)
@@ -296,7 +299,7 @@ def fig_2_2_distributions() -> Figure:
     ax.set_xlim(0, min(120, np.percentile(daily_km, 99.5)))
     median_km = np.median(daily_km)
     ax.axvline(x=median_km, color=COLORS["secondary"], linestyle="--", linewidth=1, alpha=0.8, label=f"中位数={median_km:.1f}km")
-    ax.legend(fontsize=9)
+    ax.legend(fontsize=12)
 
     ax = axes[1, 0]
     ax.hist(work_dur, bins=50, density=True, color=COLORS["success"], alpha=0.85, edgecolor="white", linewidth=0.3)
@@ -304,7 +307,7 @@ def fig_2_2_distributions() -> Figure:
     ax.set_ylabel("概率密度")
     ax.set_xlim(0, min(16, np.percentile(work_dur, 99.5)))
     ax.axvline(x=520/60, color=COLORS["secondary"], linestyle="--", linewidth=1, alpha=0.8, label="$\\mu_w$=8.67h")
-    ax.legend(fontsize=9)
+    ax.legend(fontsize=12)
 
     ax = axes[1, 1]
     max_stops = int(n_other.max())
@@ -315,9 +318,9 @@ def fig_2_2_distributions() -> Figure:
     ax.set_xticks(range(0, min(max_stops + 1, 8)))
     mean_stops = n_other.mean()
     ax.axvline(x=mean_stops, color=COLORS["secondary"], linestyle="--", linewidth=1, alpha=0.8, label=f"$\\bar{{n}}$={mean_stops:.2f}")
-    ax.legend(fontsize=9)
+    ax.legend(fontsize=12)
 
-    fig.suptitle(f"出行链关键参数概率分布（{n_samples}辆车采样）", fontsize=14)
+    fig.suptitle(f"出行链关键参数概率分布（{n_samples}辆车采样）", fontsize=16)
     fig.set_constrained_layout_pads(h_pad=0.08, hspace=0.08)
     return fig
 
@@ -334,12 +337,12 @@ def fig_2_3_multiday_framework() -> Figure:
     # Day 1 background
     ax.add_patch(mpatches.FancyBboxPatch((0, y_day1), 24, h, boxstyle="round,pad=0.02",
                  facecolor="#e2e8f0", edgecolor="#94a3b8", linewidth=1))
-    ax.text(-0.5, y_day1 + h/2, "Day 1", ha="right", va="center", fontsize=11, fontweight="bold")
+    ax.text(-0.5, y_day1 + h/2, "Day 1", ha="right", va="center", fontsize=14, fontweight="bold")
 
     # Day 2 background
     ax.add_patch(mpatches.FancyBboxPatch((24, y_day2), 24, h, boxstyle="round,pad=0.02",
                  facecolor="#e2e8f0", edgecolor="#94a3b8", linewidth=1))
-    ax.text(23.5, y_day2 + h/2, "Day 2", ha="right", va="center", fontsize=11, fontweight="bold")
+    ax.text(23.5, y_day2 + h/2, "Day 2", ha="right", va="center", fontsize=14, fontweight="bold")
 
     # Day 1 activities (simplified)
     d1_segs = [
@@ -353,7 +356,7 @@ def fig_2_3_multiday_framework() -> Figure:
                      facecolor=c, alpha=0.8, edgecolor="white", linewidth=0.5))
         if label and (t1 - t0) > 1:
             ax.text((t0+t1)/2, y_day1 + h/2, label, ha="center", va="center",
-                    fontsize=9, fontweight="bold", color="white")
+                    fontsize=12, fontweight="bold", color="white")
 
     # Cross-midnight charging block (the key feature!)
     charge_start, charge_end = 22, 30  # 22:00 day1 to 06:00 day2
@@ -361,13 +364,13 @@ def fig_2_3_multiday_framework() -> Figure:
     ax.add_patch(plt.Rectangle((22, y_day1 + 0.02), 2, h - 0.04,
                  facecolor=COLORS["charge"], alpha=0.85, edgecolor="white", linewidth=0.5))
     ax.text(23, y_day1 + h/2, "充电", ha="center", va="center",
-            fontsize=8, fontweight="bold", color="white")
+            fontsize=11, fontweight="bold", color="white")
 
     # Part on day 2 row
     ax.add_patch(plt.Rectangle((24, y_day2 + 0.02), 6, h - 0.04,
                  facecolor=COLORS["charge"], alpha=0.85, edgecolor="white", linewidth=0.5))
     ax.text(27, y_day2 + h/2, "充电（续）", ha="center", va="center",
-            fontsize=8, fontweight="bold", color="white")
+            fontsize=11, fontweight="bold", color="white")
 
     # Day 2 remaining activities
     d2_segs = [
@@ -380,7 +383,7 @@ def fig_2_3_multiday_framework() -> Figure:
                      facecolor=c, alpha=0.8, edgecolor="white", linewidth=0.5))
         if label and (t1 - t0) > 1:
             ax.text((t0+t1)/2, y_day2 + h/2, label, ha="center", va="center",
-                    fontsize=9, fontweight="bold", color="white")
+                    fontsize=12, fontweight="bold", color="white")
 
     # Curved arrow connecting day1 end to day2 start
     ax.annotate(
@@ -392,12 +395,12 @@ def fig_2_3_multiday_framework() -> Figure:
     # Midnight line
     ax.axvline(x=24, color="#475569", linestyle=":", linewidth=1.5, alpha=0.7)
     ax.text(24, y_day1 + h + 0.12, "午夜(24h)", ha="center", va="bottom",
-            fontsize=9, color="#475569", fontstyle="italic")
+            fontsize=12, color="#475569", fontstyle="italic")
 
     # Single-day truncation annotation
     ax.annotate(
         "单日仿真截断点", xy=(24, y_day1 + h + 0.03), xytext=(20, y_day1 + h + 0.22),
-        fontsize=9, color=COLORS["secondary"], fontweight="bold",
+        fontsize=12, color=COLORS["secondary"], fontweight="bold",
         arrowprops=dict(arrowstyle="->", color=COLORS["secondary"], lw=1.2),
     )
 
@@ -405,7 +408,7 @@ def fig_2_3_multiday_framework() -> Figure:
     ax.annotate(
         "有序充电窗口 22:00—06:00\n多日仿真完整覆盖", xy=(26, y_day2 + h + 0.05),
         xytext=(33, y_day1 + h + 0.15),
-        fontsize=9, color=COLORS["success"], fontweight="bold",
+        fontsize=12, color=COLORS["success"], fontweight="bold",
         arrowprops=dict(arrowstyle="->", color=COLORS["success"], lw=1.2),
     )
 
@@ -526,7 +529,7 @@ def fig_2_4_soc_evolution() -> Figure:
             mpatches.Patch(color=COLORS["success"], alpha=0.3, label="充电时段"),
             mpatches.Patch(color=COLORS["warning"], alpha=0.3, label="行驶消耗段"),
         ],
-        loc="lower left", fontsize=9,
+        loc="lower left", fontsize=12,
     )
 
     # Midnight lines
@@ -545,7 +548,7 @@ def fig_2_4_soc_evolution() -> Figure:
     ax2.set_ylim(0, max(p_kw.max() * 1.15, 1))
     ax2.grid(True, alpha=0.2)
 
-    fig.suptitle("典型单车SOC演化曲线（2天连续仿真）", fontsize=14)
+    fig.suptitle("典型单车SOC演化曲线（2天连续仿真）", fontsize=16)
     fig.set_constrained_layout_pads(h_pad=0.08, hspace=0.08)
 
     return fig
@@ -570,12 +573,12 @@ def fig_2_5_coupling_mapping() -> Figure:
         circle = plt.Circle((x, y), 0.12, facecolor=color, edgecolor="white",
                             alpha=0.7, linewidth=2)
         ax_zone.add_patch(circle)
-        ax_zone.text(x, y, label, ha="center", va="center", fontsize=8, fontweight="bold", color="white")
+        ax_zone.text(x, y, label, ha="center", va="center", fontsize=11, fontweight="bold", color="white")
 
     ax_zone.set_xlim(0, 1)
     ax_zone.set_ylim(0, 1)
     ax_zone.set_aspect("equal")
-    ax_zone.set_title("城市功能分区", fontsize=12)
+    ax_zone.set_title("城市功能分区", fontsize=15)
     ax_zone.axis("off")
 
     # Right: IEEE 33 simplified topology (linear main feeder + branches)
@@ -626,17 +629,17 @@ def fig_2_5_coupling_mapping() -> Figure:
         if b in bus_pos:
             x, y = bus_pos[b]
             offset_y = 0.05 if bus_pos[b][1] > 0.5 else -0.05
-            ax_net.text(x, y + offset_y, str(b + 1), ha="center", va="center", fontsize=7, color="#475569")
+            ax_net.text(x, y + offset_y, str(b + 1), ha="center", va="center", fontsize=10, color="#475569")
 
     ax_net.set_xlim(-0.05, 1.05)
     ax_net.set_ylim(0.05, 1.0)
-    ax_net.set_title("IEEE 33节点配电网拓扑", fontsize=12)
+    ax_net.set_title("IEEE 33节点配电网拓扑", fontsize=15)
     ax_net.axis("off")
 
     # Legend for charging stations
     ax_net.plot([], [], "s", color=COLORS["success"], markersize=8, label="充电站母线")
     ax_net.plot([], [], "o", color=COLORS["primary"], markersize=5, label="普通母线")
-    ax_net.legend(loc="upper right", fontsize=9)
+    ax_net.legend(loc="upper right", fontsize=12)
 
     # Mapping arrows between the two subplots (in figure coordinates)
     fig.patches.extend([
@@ -662,10 +665,10 @@ def fig_2_5_coupling_mapping() -> Figure:
 
     # φ(k)→n label
     fig.text(0.47, 0.55, "$\\varphi(k) \\to n$", ha="center", va="center",
-             fontsize=13, color="#475569", fontweight="bold",
+             fontsize=16, color="#475569", fontweight="bold",
              transform=fig.transFigure)
 
-    fig.suptitle("交通—配电网耦合映射示意图", fontsize=14, y=1.01)
+    fig.suptitle("交通—配电网耦合映射示意图", fontsize=16, y=1.01)
     return fig
 
 
@@ -691,7 +694,7 @@ def fig_2_6_charging_load() -> Figure:
     # Midnight line
     for boundary in np.arange(24, total_hours, 24):
         ax.axvline(boundary, color=COLORS["gray"], linestyle=":", linewidth=1.2, alpha=0.6)
-        ax.text(boundary + 0.3, ax.get_ylim()[1] * 0.95, "午夜", fontsize=8, color=COLORS["gray"])
+        ax.text(boundary + 0.3, ax.get_ylim()[1] * 0.95, "午夜", fontsize=11, color=COLORS["gray"])
 
     # Peak annotation
     peak_idx = int(np.argmax(total_kw))
@@ -700,7 +703,7 @@ def fig_2_6_charging_load() -> Figure:
     ax.annotate(
         f"峰值 {peak_val:.0f} kW\n({peak_hour:.1f}h)",
         xy=(peak_hour, peak_val), xytext=(peak_hour + 3, peak_val * 0.85),
-        fontsize=9, color=COLORS["secondary"],
+        fontsize=12, color=COLORS["secondary"],
         arrowprops=dict(arrowstyle="->", color=COLORS["secondary"], lw=1.2),
     )
 
@@ -727,7 +730,7 @@ def fig_2_7_model_comparison() -> Figure:
     ax.set_xlabel("时刻（小时）")
     ax.set_ylabel("总充电功率（kW）")
     ax.set_title(f"两种充电负荷模型对比（N={n_vehicles}，中间48h窗口）")
-    ax.legend(fontsize=11)
+    ax.legend(fontsize=13)
     ax.grid(True, alpha=0.2)
 
     for boundary in np.arange(24, total_hours, 24):
@@ -739,7 +742,7 @@ def fig_2_7_model_comparison() -> Figure:
     ax.text(
         0.98, 0.95,
         f"会话式峰值: {sess_peak:.0f} kW\n出行链峰值: {tc_peak:.0f} kW\n差异: {((sess_peak - tc_peak) / tc_peak * 100):.1f}%",
-        transform=ax.transAxes, ha="right", va="top", fontsize=9,
+        transform=ax.transAxes, ha="right", va="top", fontsize=12,
         bbox=dict(facecolor="white", alpha=0.85, edgecolor=COLORS["gray"], boxstyle="round,pad=0.4"),
     )
 
@@ -884,7 +887,7 @@ def fig_2_8_activity_gantt() -> Figure:
                     linewidth=1.5)
 
         ax.set_yticks([0])
-        ax.set_yticklabels([f"车辆{v_idx + 1}"], fontsize=9)
+        ax.set_yticklabels([f"车辆{v_idx + 1}"], fontsize=12)
         ax.set_ylim(-0.5, 0.5)
         ax.set_xlim(0, 48)
         ax.axvline(24, color=COLORS["gray"], linestyle=":", linewidth=0.8, alpha=0.5)
@@ -902,7 +905,7 @@ def fig_2_8_activity_gantt() -> Figure:
         mpatches.Patch(color=COLORS["travel"], label="行驶", alpha=0.6),
         mpatches.Patch(color=COLORS["charge"], label="充电", alpha=0.55),
     ]
-    fig.legend(handles=legend_patches, loc="lower center", ncols=5, fontsize=10,
+    fig.legend(handles=legend_patches, loc="lower center", ncols=5, fontsize=13,
                bbox_to_anchor=(0.5, -0.06))
     return fig
 
@@ -944,8 +947,8 @@ def fig_2_9_spatial_distribution() -> Figure:
     ax.set_ylabel("充电功率（kW）")
     ax.set_title("充电负荷母线级空间分布（N=1500）")
     ax.set_xticks(x)
-    ax.set_xticklabels(bus_labels, fontsize=8, rotation=45)
-    ax.legend(fontsize=10)
+    ax.set_xticklabels(bus_labels, fontsize=11, rotation=45)
+    ax.legend(fontsize=13)
     ax.grid(axis="y", alpha=0.2)
 
     # Highlight top 3 buses
@@ -955,7 +958,7 @@ def fig_2_9_spatial_distribution() -> Figure:
             f"{peak_kw[idx]:.0f}kW",
             xy=(idx - bar_width/2, peak_kw[idx]),
             xytext=(0, 5), textcoords="offset points",
-            ha="center", fontsize=8, fontweight="bold", color=COLORS["secondary"],
+            ha="center", fontsize=11, fontweight="bold", color=COLORS["secondary"],
         )
 
     return fig
