@@ -33,3 +33,6 @@ latex/*.log
 latex/*.out
 latex/*.pdf
 latex/*.toc
+
+node_modules/
+
