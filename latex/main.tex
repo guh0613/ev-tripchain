@@ -28,7 +28,7 @@
 \usepackage{indentfirst}
 \usepackage{tikz}
 \usepackage{tikz-qtree,tikz-qtree-compat}
-\usetikzlibrary{arrows}
+\usetikzlibrary{arrows, shapes.geometric, positioning}
 \usepackage{siunitx}
 \usepackage{anyfontsize}
 \usepackage{fontspec}
@@ -1034,16 +1034,55 @@
 
     \begin{figure}[htbp]
         \centering
-        \subfigure[三阶段自适应二分搜索流程]{
-            \includegraphics[width=0.62\textwidth]{fig3_4_p1.png}
-        }
+        \begin{tikzpicture}[
+            node distance=0.35cm and 1.4cm,
+            se/.style={ellipse, draw=black!65, fill=black!6,
+                minimum height=0.5cm, align=center, font=\zihao{5}},
+            proc/.style={rectangle, rounded corners=2pt, draw=black!55, fill=blue!2,
+                minimum height=0.45cm, align=center, font=\zihao{5}},
+            dec/.style={diamond, draw=black!55, fill=yellow!4, aspect=2.5,
+                align=center, font=\zihao{5}, inner sep=1pt},
+            arr/.style={-stealth, semithick, black!60},
+            lbl/.style={font=\zihao{6}, black!65},
+            phl/.style={font=\zihao{6}\itshape, text=black!35}
+        ]
+        \node[se] (start) {开始（$N \leftarrow N_0$）};
+        \node[proc, below=of start] (eval1)
+            {蒙特卡洛评估\;$\hat{\pi}(N)$（$S$\,个场景）};
+        \node[dec, below=0.45cm of eval1] (d1)
+            {$\hat{\pi}(N)\!\leq\!\varepsilon$\;?};
+        \node[proc, right=of d1] (dbl)
+            {$\text{lo}\!\leftarrow\!N$，$N\!\leftarrow\!2N$};
+        \node[proc, below=0.65cm of d1] (bisect)
+            {取\;$\text{mid}=\lfloor(\text{lo}\!+\!\text{hi})/2\rfloor$，评估\;$\hat{\pi}(\text{mid})$\\[1pt]
+             若\;$\hat{\pi}\!\leq\!\varepsilon$\;则\;$\text{lo}\!\leftarrow\!\text{mid}$，否则\;$\text{hi}\!\leftarrow\!\text{mid}$};
+        \node[dec, below=0.45cm of bisect] (d2)
+            {$\text{hi}\!-\!\text{lo}\leq\Delta_{\min}$\\[-1pt]或\;$k\!\geq\!K_{\max}$\;?};
+        \node[proc, below=0.65cm of d2] (verify)
+            {对\;$[\text{lo},\,\text{hi}]$\;内逐一验证，$N^*\!=\!\max\{N:\hat{\pi}(N)\!\leq\!\varepsilon\}$};
+        \node[se, below=of verify] (end) {输出\;$N^*$};
 
-        \vspace{0.4em}
+        % 阶段标注
+        \node[phl, left=0.4cm of eval1] {阶段一};
+        \node[phl, left=0.4cm of bisect] {阶段二};
+        \node[phl, left=0.4cm of verify] {阶段三};
 
-        \subfigure[单次 $\hat{\pi}(N)$ 评估流程]{
-            \includegraphics[width=0.62\textwidth]{fig3_4_p2.png}
-        }
-        \caption{自适应二分搜索算法流程图}
+        % 主流程
+        \draw[arr] (start) -- (eval1);
+        \draw[arr] (eval1) -- (d1);
+        \draw[arr] (d1) -- node[right, lbl] {否（$\text{hi}\!\leftarrow\!N$）} (bisect);
+        \draw[arr] (bisect) -- (d2);
+        \draw[arr] (d2) -- node[right, lbl] {是} (verify);
+        \draw[arr] (verify) -- (end);
+
+        % 阶段一循环
+        \draw[arr] (d1) -- node[above, lbl] {是} (dbl);
+        \draw[arr] (dbl.north) |- (eval1.east);
+
+        % 阶段二循环
+        \draw[arr] (d2.east) -- node[above, lbl, pos=0.2] {否} ++(3,0) |- (bisect.east);
+        \end{tikzpicture}
+        \caption{自适应二分搜索算法流程}
         \label{fig:adaptive_binary_search}
     \end{figure}
 
