@@ -18,21 +18,11 @@ outputs/
 .vscode/
 README.md
 output/
-# Thesis LaTeX sources
-latex/*
-!latex/main.tex
-!latex/pics/
-latex/pics/*
-!latex/pics/*.png
 
-# LaTeX build artifacts
-latex/*.aux
-latex/*.fdb_latexmk
-latex/*.fls
-latex/*.log
-latex/*.out
-latex/*.pdf
-latex/*.toc
+# Local-only thesis, references, and generated manuscript assets
+docs/
+finish/
+latex/
+pics/
 
 node_modules/
-
