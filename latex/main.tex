@@ -132,6 +132,7 @@
 \titlespacing*{\subsubsection}{0pt}{10pt}{10pt}
 \usepackage{algorithm,algorithmic}
 \usepackage{float}
+\usepackage{flafter}
 \usepackage{subfigure}
 \usepackage[subfigure]{tocloft}
 \usepackage{fancyhdr}
@@ -202,8 +203,20 @@
 \setlength{\parindent}{2em}
 \setlength{\parskip}{0pt}
 \setlength{\headheight}{17pt}
-\setlength{\textfloatsep}{20pt plus 2pt minus 2pt}
-\setlength{\intextsep}{20pt plus 2pt minus 2pt}
+\setlength{\textfloatsep}{14pt plus 2pt minus 4pt}
+\setlength{\intextsep}{12pt plus 2pt minus 2pt}
+\setcounter{topnumber}{2}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{4}
+\renewcommand{\topfraction}{0.78}
+\renewcommand{\bottomfraction}{0.55}
+\renewcommand{\textfraction}{0.16}
+\renewcommand{\floatpagefraction}{0.72}
+\makeatletter
+\setlength{\@fptop}{0pt plus 1fil}
+\setlength{\@fpsep}{12pt plus 2fil}
+\setlength{\@fpbot}{0pt plus 1fil}
+\makeatother
 
 \DeclareCaptionFont{thesiscaptionfont}{\zihao{5}\songti\setstretch{1}}
 \captionsetup{
@@ -227,8 +240,9 @@
 \renewcommand{\tablename}{表}
 \renewcommand{\sectionmark}[1]{\markboth{第\thesection 章\quad #1}{第\thesection 章\quad #1}}
 \renewcommand{\subsectionmark}[1]{}
-\newcommand{\thesisbodyfont}{\fontsize{12pt}{20pt}\selectfont\songti}
-\newcommand{\thesisenglishfont}{\fontsize{12pt}{20pt}\selectfont}
+% 正文：小四 12pt，固定行距 20pt。
+\newcommand{\thesisbodyfont}{\setstretch{1}\songti\fontsize{12pt}{20pt}\selectfont}
+\newcommand{\thesisenglishfont}{\setstretch{1}\fontsize{12pt}{20pt}\selectfont}
 \newcommand{\frontmattergeometry}{%
     \newgeometry{
         top=2.5cm,
@@ -511,7 +525,14 @@
 
     \subsubsection{关键参数的概率分布}
 
-    出行链中的随机变量需要用合适的概率分布进行描述。本文结合国内外出行调查数据和已有文献中的校准结果，对主要参数作如下设定。
+    出行链中的随机变量需要用合适的概率分布进行描述。本文结合国内外出行调查数据和已有文献中的校准结果，对主要参数作如下设定。各参数采样分布的形态如图 \ref{fig:trip_chain_distribution} 所示。
+
+    \begin{figure}[!htbp]
+        \centering
+        \includegraphics[width=0.72\textwidth]{fig_2_2.png}
+        \caption{出行链关键参数概率分布（20000 辆车采样）}
+        \label{fig:trip_chain_distribution}
+    \end{figure}
 
     首次出发时刻 $t_{\text{dep}}$ 主要对应早间通勤出行规律，本文采用正态分布描述：
     \begin{equation}
@@ -560,23 +581,17 @@
     \end{equation}
     其中 $\alpha$ 为单位里程行驶时间（分钟/km），本文取 $\alpha = 1.8$ 分钟/km，对应约 33 km/h 的城市综合平均车速。侯佳欣\supercite{ref15}给出的城市道路正常通行速度为 30—50 km/h（一级道路）和 20—40 km/h（二级道路），本文所取 33 km/h 处在上述范围的中下段，能够反映城市道路中信号灯和拥堵延迟共同作用后的综合行驶速度。
 
-    \begin{figure}[htbp]
-        \centering
-        \includegraphics[width=0.75\textwidth]{fig_2_2.png}
-        \caption{出行链关键参数概率分布（20000 辆车采样）}
-        \label{fig:trip_chain_distribution}
-    \end{figure}
-
     上述参数的取值汇总于表 \ref{tab:trip_chain_params}。
 
-    \begin{table}[!htbp]
-        \centering
-        \caption{出行链模型参数设定}
-        \label{tab:trip_chain_params}
+    \begingroup
         \zihao{5}
         \setlength{\tabcolsep}{4pt}
+        \setlength{\LTleft}{0pt plus 1fill}
+        \setlength{\LTright}{0pt plus 1fill}
         \renewcommand{\arraystretch}{1.3}
-        \begin{tabular}{l >{\centering\arraybackslash}p{1.6cm} >{\centering\arraybackslash}p{2.6cm} >{\centering\arraybackslash}p{2.0cm} >{\centering\arraybackslash}p{2.8cm}}
+        \begin{longtable}{l >{\centering\arraybackslash}p{1.6cm} >{\centering\arraybackslash}p{2.6cm} >{\centering\arraybackslash}p{2.0cm} >{\centering\arraybackslash}p{2.8cm}}
+            \caption{出行链模型参数设定}
+            \label{tab:trip_chain_params}\\
             \toprule
             参数名称 & 符号 & 取值 & 分布类型 & 来源 \\
             \midrule
@@ -592,8 +607,8 @@
             单位里程行驶时间 & $\alpha$ & 1.8\,min/km & 确定性 & \inlinecite{ref15} \\
             交通区域数量 & $n_{\text{zone}}$ & 50 & --- & \inlinecite{ref10} \\
             \bottomrule
-        \end{tabular}
-    \end{table}
+        \end{longtable}
+    \endgroup
 
     \subsubsection{多日连续仿真框架}
 
@@ -776,20 +791,23 @@
 
     基于上述模型，本节对大规模电动汽车聚合充电负荷的时序特性和空间分布特性进行分析。
 
-    \begin{figure}[H]
+    \begin{figure}[!htbp]
         \centering
         \includegraphics[width=0.80\textwidth]{fig_2_6.png}
         \caption{大规模 EV 聚合充电负荷时序曲线（$N = 1500$，扩展仿真截取中间 48 h）}
         \label{fig:aggregate_load_curve}
-        \vspace{20pt}
-        \includegraphics[width=0.80\textwidth]{fig_2_7.png}
-        \caption{两种充电负荷模型对比（$N = 1000$，中间 48 h 窗口）}
-        \label{fig:model_comparison}
     \end{figure}
 
     图 \ref{fig:aggregate_load_curve} 展示了出行链模型在无序充电模式下得到的聚合充电负荷时序曲线。可以看出，充电负荷具有较明显的时间规律：多数车辆在工作日下班后返家并开始充电，负荷峰值主要出现在 18:00—24:00 时段，与居民用电晚高峰重合，形成“峰上加峰”效应。
 
     进一步将出行链模型和会话式模型生成的充电负荷进行对比，如图 \ref{fig:model_comparison} 所示。
+
+    \begin{figure}[!htbp]
+        \centering
+        \includegraphics[width=0.80\textwidth]{fig_2_7.png}
+        \caption{两种充电负荷模型对比（$N = 1000$，中间 48 h 窗口）}
+        \label{fig:model_comparison}
+    \end{figure}
 
     两类模型得到的聚合充电负荷存在明显差异。出行链模型刻画了日内多次出行造成的时空分散，部分车辆会在工作地点或中间停靠点触发充电，因此负荷在时间上更加分散，峰值功率相对较低；会话式模型中的充电事件更集中，峰值功率更高。从承载力评估角度看，负荷时间分散能够降低峰值功率对配电网的冲击，因此出行链模型下的承载力通常高于会话式模型。这一差异将在第 4 章中进一步定量分析。
 
